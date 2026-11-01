@@ -3,13 +3,13 @@ import { RECIPES, CATEGORIES } from './data/recipes.js';
 import { FRUITS, fruitById, seasonalFruits } from './data/fruits.js';
 import { generateWeek, reroll, setMeal, toggleSkip, getRecipe } from './planner.js';
 import {
-  buildShoppingList, groupByCategory, formatQty, coupangUrl, extractCoupangLink, guessCategory, listToText, itemKey, parseItemInput,
+  buildShoppingList, groupByCategory, formatQty, STORES, STORE_IDS, storeUrl, extractStoreLink, guessCategory, listToText, itemKey, parseItemInput,
   buildDayList, allOccurrences, occKeysOf, migrateShopState, dayListToText, formatNeed,
 } from './shopping.js';
 import { loadDB, saveDB, parseBackup, pruneOld, emptyDB } from './storage.js';
 import { mondayOf, addDays, DAY_NAMES, shortDate, weekLabel, monthOfWeek, toKey } from './date.js';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const $ = (sel) => document.querySelector(sel);
 
 let db = loadDB();
@@ -70,6 +70,17 @@ function shopState(week = currentWeek()) {
 }
 
 const shopView = () => db.prefs.shopView ?? 'day';
+
+/** 쇼핑몰별 저장 링크 (쿠팡은 예전부터 prefs.links에 저장) */
+function linksOf(store) {
+  if (store === 'coupang') return db.prefs.links;
+  db.prefs[`${store}Links`] ??= {};
+  return db.prefs[`${store}Links`];
+}
+const enabledStores = () => {
+  const list = (db.prefs.stores ?? STORE_IDS).filter((id) => STORES[id]);
+  return list.length ? list : ['coupang'];
+};
 
 const isFav = (id) => db.prefs.favorites.includes(id);
 const isDisliked = (id) => db.prefs.disliked.includes(id);
@@ -176,7 +187,7 @@ function recipeBody(r) {
   const ing = (i) => `<li>${esc(i[0])} <small>${i[1] ? formatIngredientQty(i[1], i[2]) : ''}</small></li>`;
   return `
     <div>${badges(r)}</div>
-    ${r.kit ? '<p class="hint">🎁 3~4인분 제품 1팩 기준이에요(2인분 제품이면 2팩). 쿠팡 로켓프레시로 전날 밤에 주문하면 다음 날 새벽에 와요.</p>' : ''}
+    ${r.kit ? '<p class="hint">🎁 3~4인분 제품 1팩 기준이에요(2인분 제품이면 2팩). 쿠팡·이마트몰에서 전날 밤에 주문하면 새벽배송으로 받을 수 있어요.</p>' : ''}
     ${r.kidTip ? `<div class="kidtip">👶 ${esc(r.kidTip)}</div>` : ''}
     <div class="sub-h">재료 (4인 가족 기준)</div>
     <ul class="ings">${shop.map(ing).join('')}</ul>
@@ -324,27 +335,40 @@ function itemSheet({ key }) {
   const { items, removed } = buildShoppingList(getPlan(week, false), shopState(week), db.prefs.staples);
   const it = [...items, ...removed].find((x) => x.key === key);
   if (!it) return { title: '항목', body: '<p class="empty">이미 목록에서 사라진 항목이에요.</p>' };
-  const saved = db.prefs.links[it.name];
   const isStaple = db.prefs.staples.some((s) => itemKey(s.name, s.unit) === key);
   const isRemoved = removed.some((x) => x.key === key);
   const isActive = items.some((x) => x.key === key);
+  const stores = enabledStores();
+  const openButtons = stores
+    .map((st) => {
+      const saved = linksOf(st)[it.name];
+      return `<a class="btn ${st === stores[0] ? 'primary' : ''} wide store-open" href="${esc(storeUrl(st, it.name, linksOf(st)))}" target="_blank" rel="noopener">🛒 ${STORES[st].longLabel ?? STORES[st].label} ${saved ? '⭐ 저장한 상품' : '검색'}</a>`;
+    })
+    .join('');
+  const saveSections = stores
+    .map((st) => {
+      const saved = linksOf(st)[it.name];
+      const name = STORES[st].longLabel ?? STORES[st].label;
+      return `
+      <section class="card set">
+        <h3>⭐ ${name} 자주 사는 상품</h3>
+        <p class="hint">${name} 앱에서 원하는 상품 → <b>공유</b> → <b>링크 복사</b> 후 붙여넣으세요. 다음부터 ‘${STORES[st].label}’ 버튼이 그 상품으로 바로 열려요.</p>
+        <input class="input" id="link-input-${st}" style="width:100%" placeholder="${STORES[st].example}" value="${esc(saved ?? '')}" inputmode="url" autocomplete="off">
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn small" data-action="paste-link" data-store="${st}">📋 붙여넣기</button>
+          <button class="btn small primary" data-action="save-link" data-store="${st}" data-name="${esc(it.name)}">저장</button>
+          ${saved ? `<a class="btn small" href="${esc(STORES[st].search(it.name.replace(/[()]/g, ' ')))}" target="_blank" rel="noopener">🔍 다른 상품 검색</a>
+          <button class="btn small danger" data-action="clear-link" data-store="${st}" data-name="${esc(it.name)}">링크 지우기</button>` : ''}
+        </div>
+      </section>`;
+    })
+    .join('');
   return {
     title: `${esc(it.name)} <small class="iqty">${formatQty(it.qty, it.unit)}</small>`,
     body: `
       ${it.uses.length ? `<p class="hint">사용: ${esc(it.uses.join(', '))}</p>` : ''}
-      <a class="btn primary wide" href="${esc(coupangUrl(it.name, db.prefs.links))}" target="_blank" rel="noopener">🛒 쿠팡에서 ${saved ? '저장한 상품 열기' : '검색하기'}</a>
-      ${saved ? `<a class="btn wide" style="margin-top:8px" href="${esc(coupangUrl(it.name))}" target="_blank" rel="noopener">🔍 다른 상품 검색</a>` : ''}
-
-      <section class="card set" style="margin-top:14px">
-        <h3>⭐ 자주 사는 상품 저장</h3>
-        <p class="hint">쿠팡 앱에서 원하는 상품 → <b>공유</b> → <b>링크 복사</b> 후 아래에 붙여넣으세요.<br>다음부터 이 재료의 ‘쿠팡’ 버튼이 그 상품으로 바로 열려요.</p>
-        <input class="input" id="link-input" style="width:100%" placeholder="https://link.coupang.com/..." value="${esc(saved ?? '')}" inputmode="url" autocomplete="off">
-        <div class="btnrow" style="margin-top:8px">
-          <button class="btn small" data-action="paste-link">📋 붙여넣기</button>
-          <button class="btn small primary" data-action="save-link" data-name="${esc(it.name)}">저장</button>
-          ${saved ? `<button class="btn small danger" data-action="clear-link" data-name="${esc(it.name)}">링크 지우기</button>` : ''}
-        </div>
-      </section>
+      <div class="store-opens">${openButtons}</div>
+      <div style="margin-top:14px">${saveSections}</div>
 
       <div class="btnrow">
         <button class="btn wide" data-action="staple" data-key="${esc(key)}">${isStaple ? '📌 매주 고정 해제' : '📌 매주 자동으로 넣기'}</button>
@@ -382,9 +406,14 @@ window.addEventListener('popstate', () => {
 
 // ───────────────────────────── 장보기 탭 ─────────────────────────────
 
+/** 품목 줄의 쇼핑몰 버튼들 (설정에서 켠 쇼핑몰만) */
 function cpLink(name) {
-  const saved = db.prefs.links[name];
-  return `<a class="cp ${saved ? 'saved' : ''}" href="${esc(coupangUrl(name, db.prefs.links))}" target="_blank" rel="noopener">${saved ? '⭐쿠팡' : '쿠팡'}</a>`;
+  return enabledStores()
+    .map((st) => {
+      const saved = linksOf(st)[name];
+      return `<a class="cp cp-${st} ${saved ? 'saved' : ''}" href="${esc(storeUrl(st, name, linksOf(st)))}" target="_blank" rel="noopener">${saved ? '⭐' : ''}${STORES[st].label}</a>`;
+    })
+    .join('');
 }
 
 function renderShop() {
@@ -412,7 +441,7 @@ function renderShop() {
     </form>
     <p class="hint">${view === 'day'
       ? '메뉴마다 필요한 재료예요. <b>🔁</b> 표시는 다른 날에도 쓰는 재료라 한 번에 사면 좋아요.'
-      : '일주일치 재료를 합친 양이에요. 한 번에 장볼 때 편해요.'} 품목 이름을 누르면 자주 사는 쿠팡 상품을 저장할 수 있어요(⭐).</p>
+      : '일주일치 재료를 합친 양이에요. 한 번에 장볼 때 편해요.'} 품목 이름을 누르면 자주 사는 상품 링크를 저장할 수 있어요(⭐).</p>
     ${body.html}`;
 }
 
@@ -612,6 +641,11 @@ function renderSettings() {
     </section>
 
     <section class="card set">
+      <h3>🛍 장보는 곳</h3><p class="hint">장보기 목록에 바로가기 버튼을 보여줄 쇼핑몰을 고르세요. (여러 개 선택 가능)</p>
+      <div class="seg">${STORE_IDS.map((id) => `<button data-action="toggle-store" data-store="${id}" aria-pressed="${enabledStores().includes(id)}">${STORES[id].longLabel ?? STORES[id].label}</button>`).join('')}</div>
+    </section>
+
+    <section class="card set">
       <h3>📌 매주 고정 장보기</h3>
       ${db.prefs.staples.length
         ? `<ul class="ings">${db.prefs.staples.map((s) => `<li>${esc(s.name)} <small>${formatQty(s.qty, s.unit)}</small> <button data-action="staple-del" data-id="${esc(s.id)}" aria-label="삭제">✕</button></li>`).join('')}</ul>`
@@ -760,27 +794,27 @@ const actions = {
     toast('다시 넣었어요');
   },
   'open-item': ({ key }) => openSheet({ type: 'item', key }),
-  'paste-link': async () => {
+  'paste-link': async ({ store }) => {
     try {
       const text = await navigator.clipboard.readText();
-      $('#link-input').value = extractCoupangLink(text) ?? text;
+      $(`#link-input-${store}`).value = extractStoreLink(store, text) ?? text;
     } catch {
       toast('입력칸을 길게 눌러 붙여넣기 해주세요');
     }
     return false; // 다시 그리지 않음
   },
-  'save-link': ({ name }) => {
-    const link = extractCoupangLink($('#link-input').value);
+  'save-link': ({ store, name }) => {
+    const link = extractStoreLink(store, $(`#link-input-${store}`).value);
     if (!link) {
-      toast('쿠팡 링크를 찾지 못했어요');
+      toast(`${STORES[store].longLabel ?? STORES[store].label} 링크를 찾지 못했어요`);
       return false;
     }
-    db.prefs.links[name] = link;
+    linksOf(store)[name] = link;
     persist();
     toast('저장했어요 — 다음부터 바로 이 상품이 열려요');
   },
-  'clear-link': ({ name }) => {
-    delete db.prefs.links[name];
+  'clear-link': ({ store, name }) => {
+    delete linksOf(store)[name];
     persist();
   },
   staple: ({ key }) => {
@@ -796,6 +830,16 @@ const actions = {
       st.custom = st.custom.filter((c) => c !== custom); // 중복 방지
       toast('매주 자동으로 넣을게요');
     }
+    persist();
+  },
+  'toggle-store': ({ store }) => {
+    const list = enabledStores();
+    const next = list.includes(store) ? list.filter((s) => s !== store) : STORE_IDS.filter((s) => s === store || list.includes(s));
+    if (!next.length) {
+      toast('쇼핑몰을 하나 이상 선택해 주세요');
+      return false;
+    }
+    db.prefs.stores = next;
     persist();
   },
   'staple-del': ({ id }) => {

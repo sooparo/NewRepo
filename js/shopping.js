@@ -195,29 +195,54 @@ export function formatQty(qty, unit) {
 }
 const trim = (n) => String(Math.round(n * 10) / 10);
 
-/** 쿠팡 검색 링크 (저장된 상품 링크가 있으면 그걸 우선) */
-export function coupangUrl(name, links = {}) {
-  if (links[name]) return links[name];
-  const q = name.replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
-  return `https://www.coupang.com/np/search?q=${encodeURIComponent(q)}`;
+// ───────────────────────────── 쇼핑몰 ─────────────────────────────
+// 새 쇼핑몰을 추가하려면 여기에 항목을 더하면 된다.
+//   hosts  : 저장할 수 있는 상품 링크의 도메인
+//   search : 재료 이름으로 검색 결과 페이지 주소 만들기
+export const STORES = {
+  coupang: {
+    label: '쿠팡',
+    hosts: [/(^|\.)coupang\.com$/, /^coupa\.ng$/],
+    search: (q) => `https://www.coupang.com/np/search?q=${encodeURIComponent(q)}`,
+    example: 'https://link.coupang.com/...',
+  },
+  emart: {
+    label: '이마트',
+    longLabel: '이마트몰',
+    hosts: [/(^|\.)ssg\.com$/, /(^|\.)emart\.com$/],
+    search: (q) => `https://emart.ssg.com/search.ssg?target=all&query=${encodeURIComponent(q)}`,
+    example: 'https://emart.ssg.com/item/...',
+  },
+};
+export const STORE_IDS = Object.keys(STORES);
+
+const searchWord = (name) => name.replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** 쇼핑몰 링크: 저장한 상품 링크가 있으면 그것, 없으면 재료 이름 검색 */
+export function storeUrl(store, name, links = {}) {
+  return links[name] || STORES[store].search(searchWord(name));
 }
 
 /**
- * 붙여넣은 텍스트에서 쿠팡 링크 추출.
- * 쿠팡 앱 '공유 → 복사'는 "[쿠팡] 상품명 https://link.coupang.com/a/..." 형태라 URL만 뽑아낸다.
+ * 붙여넣은 텍스트에서 해당 쇼핑몰 링크만 추출.
+ * 앱의 '공유 → 링크 복사'는 "[쿠팡] 상품명 https://link.coupang.com/a/..."처럼 글자와 섞여 있어서 URL만 뽑아낸다.
  */
-export function extractCoupangLink(text) {
+export function extractStoreLink(store, text) {
   const urls = String(text ?? '').match(/https?:\/\/[^\s"'<>]+/g) ?? [];
   for (const raw of urls) {
     try {
       const u = new URL(raw);
-      if (/(^|\.)coupang\.com$/.test(u.hostname) || u.hostname === 'coupa.ng') return u.href;
+      if (STORES[store].hosts.some((h) => h.test(u.hostname))) return u.href;
     } catch {
       /* 무시 */
     }
   }
   return null;
 }
+
+// 예전 이름 (호환용)
+export const coupangUrl = (name, links = {}) => storeUrl('coupang', name, links);
+export const extractCoupangLink = (text) => extractStoreLink('coupang', text);
 
 /** 카톡 공유/복사용 텍스트 */
 export function listToText(items, title = '장보기 목록') {
