@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_paste"
+        android:shortcutId="paste"
+        android:shortcutLongLabel="@string/shortcut_paste_long"
+        android:shortcutShortLabel="@string/shortcut_paste">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.sooparo.schedulecatcher.PasteActivity"
+            android:targetPackage="com.sooparo.schedulecatcher" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_tasks"
+        android:shortcutId="tasks"
+        android:shortcutShortLabel="@string/shortcut_tasks">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.sooparo.schedulecatcher.TasksActivity"
+            android:targetPackage="com.sooparo.schedulecatcher" />
+    </shortcut>
+</shortcuts>

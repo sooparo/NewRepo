@@ -228,10 +228,93 @@
             android:layout_marginTop="8dp"
             android:text="감지 알림 세 번째 버튼을 [할 일] 대신 [둘 다(캘린더+알람)]로" />
 
-        <!-- 6. 인식 테스트 -->
+        <!-- 6. 대화방을 보고 있을 때 -->
         <TextView
             style="@style/SectionTitle"
-            android:text="6. 인식 테스트" />
+            android:text="6. 대화방을 보고 있을 때" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="카톡 대화방을 열어두면 알림이 뜨지 않아 자동 감지가 안 됩니다. 아래 두 방법을 쓸 수 있어요."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="📋 붙여넣기: 메시지를 길게 눌러 '복사' → 알림창을 내려 '일정 붙여넣기' 타일, 또는 위젯의 📋, 또는 앱 아이콘 길게 누르기 → '일정 붙여넣기'.\n(타일 추가: 알림창 두 번 내리기 → 연필(편집) → '일정 붙여넣기'를 끌어다 놓기)"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPaste"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📋 지금 복사한 메시지로 일정 만들기" />
+
+        <TextView
+            android:id="@+id/statusScreenReader"
+            style="@style/StatusText" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="👀 화면 읽기(선택): 대화방을 보고 있을 때도 새 메시지를 자동 감지합니다. '감지할 앱'의 화면만 받고, 저장하지 않으며, 아래 개인정보 가리기가 먼저 적용됩니다. 병원 보안 규정에서 접근성 앱 사용이 허용되는지 확인 후 켜세요."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnScreenReader"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="접근성 설정 열기 → 설치된 앱 → 일정캐치 화면 읽기" />
+
+        <!-- 7. 개인정보 가리기 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="7. 개인정보 가리기" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="알림 · 화면 읽기 · 붙여넣기 · 공유 모두, 분석하기 전에 아래 정보를 지웁니다."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchMaskReg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="등록번호 8자리 → ********" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchMaskPersonal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="주민번호 · 전화번호" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchMaskNames"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="호칭 붙은 이름 (홍길동 환자 → OOO 환자)" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchHideSender"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="보낸 사람 이름 저장 안 함 (앱 이름만)" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠️ 호칭 없이 쓴 이름(예: '길동이 CT')은 이름인지 판단할 수 없어 가려지지 않습니다."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <!-- 8. 인식 테스트 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="8. 인식 테스트" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"

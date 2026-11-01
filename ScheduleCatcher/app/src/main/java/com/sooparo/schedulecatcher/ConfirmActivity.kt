@@ -61,6 +61,10 @@ class ConfirmActivity : AppCompatActivity() {
         if (!load(intent)) finish()
     }
 
+    companion object {
+        const val EXTRA_SOURCE_LABEL = "confirm.sourceLabel"
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -102,12 +106,14 @@ class ConfirmActivity : AppCompatActivity() {
     /** 다른 앱에서 '공유'로 받은 텍스트 */
     private fun fromSharedText(intent: Intent?): ScheduleData? {
         if (intent?.action != Intent.ACTION_SEND) return null
-        val text = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
-        if (text.isEmpty()) return null
+        val rawText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
+        if (rawText.isEmpty()) return null
 
+        val label = intent.getStringExtra(EXTRA_SOURCE_LABEL) ?: "공유"
+        val text = Prefs(this).privacyFilter().redact(rawText)
         val parser = ScheduleParser()
         val detection = MessageAnalyzer.Detection(parser.parse(text), TodoDetector(parser).detect(text), false)
-        ScheduleData.from(detection, "공유", null)?.let { return it }
+        ScheduleData.from(detection, label, null)?.let { return it }
 
         Toast.makeText(this, "날짜/시간을 찾지 못했어요. 직접 입력해 주세요.", Toast.LENGTH_LONG).show()
         return ScheduleData(
@@ -118,7 +124,7 @@ class ConfirmActivity : AppCompatActivity() {
             allDay = false,
             location = null,
             sourceText = text,
-            sourceApp = "공유",
+            sourceApp = label,
             sender = null,
         )
     }

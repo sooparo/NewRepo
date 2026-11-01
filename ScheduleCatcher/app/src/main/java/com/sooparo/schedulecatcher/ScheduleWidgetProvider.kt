@@ -63,6 +63,12 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
             rv.setOnClickPendingIntent(R.id.widgetAdd, add)
+
+            val paste = PendingIntent.getActivity(
+                context, 3, Intent(context, PasteActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            rv.setOnClickPendingIntent(R.id.widgetPaste, paste)
             return rv
         }
     }

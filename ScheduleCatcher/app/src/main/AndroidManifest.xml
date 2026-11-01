@@ -44,7 +44,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- 복사한 메시지 → 일정 확인 화면 (타일 · 위젯 📋 · 앱 아이콘 바로가기) -->
+        <activity
+            android:name=".PasteActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.ScheduleCatcher.Translucent" />
 
         <!-- 일정 확인/수정 화면. 다른 앱에서 '공유'로 텍스트를 보내도 열린다. -->
         <activity
@@ -80,7 +92,7 @@
 
         <activity
             android:name=".TasksActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="할 일 · 저장 기록" />
 
         <activity
@@ -111,6 +123,31 @@
         <receiver
             android:name=".BriefingReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".PasteTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_paste"
+            android:label="@string/tile_paste"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- (선택) 화면 읽기: 사용자가 접근성 설정에서 직접 켜야 동작 -->
+        <service
+            android:name=".ScreenReaderService"
+            android:exported="true"
+            android:label="@string/a11y_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/screen_reader_config" />
+        </service>
 
         <service
             android:name=".MessageListenerService"

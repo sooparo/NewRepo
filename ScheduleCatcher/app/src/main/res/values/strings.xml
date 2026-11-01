@@ -4,4 +4,11 @@
     <string name="confirm_title">일정 저장</string>
     <string name="share_label">일정캐치로 일정 저장</string>
     <string name="widget_description">오늘 일정과 할 일 체크리스트</string>
+    <string name="tile_paste">일정 붙여넣기</string>
+    <string name="shortcut_paste">일정 붙여넣기</string>
+    <string name="shortcut_paste_long">복사한 메시지로 일정 만들기</string>
+    <string name="shortcut_tasks">할 일 · 기록</string>
+    <string name="a11y_label">일정캐치 화면 읽기</string>
+    <string name="a11y_summary">대화방을 보고 있을 때도 새 메시지의 일정을 감지</string>
+    <string name="a11y_description">카카오톡·네이버 웍스·문자 앱을 보고 있을 때 알림이 뜨지 않아도 새로 도착한 메시지에서 일정을 찾습니다.\n\n• 설정한 메시지 앱의 화면만 받으며 다른 앱 화면은 받지 않습니다.\n• 화면 글자는 기기 안에서 분석만 하고 저장하거나 전송하지 않습니다.\n• 분석 전에 등록번호(8자리)·주민번호·전화번호·호칭 붙은 이름을 가립니다.\n• 대화방에 들어갈 때 이미 보이던 메시지는 감지하지 않습니다.</string>
 </resources>

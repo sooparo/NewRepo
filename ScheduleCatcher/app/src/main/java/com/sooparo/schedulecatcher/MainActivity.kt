@@ -96,6 +96,20 @@ class MainActivity : AppCompatActivity() {
         binding.switchThirdBoth.isChecked = prefs.thirdButtonBoth
         binding.switchThirdBoth.setOnCheckedChangeListener { _, checked -> prefs.thirdButtonBoth = checked }
 
+        // --- 대화방을 보고 있을 때 ---
+        binding.btnPaste.setOnClickListener { startActivity(Intent(this, PasteActivity::class.java)) }
+        binding.btnScreenReader.setOnClickListener { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+
+        // --- 개인정보 가리기 ---
+        binding.switchMaskReg.isChecked = prefs.maskRegistrationNumbers
+        binding.switchMaskReg.setOnCheckedChangeListener { _, c -> prefs.maskRegistrationNumbers = c }
+        binding.switchMaskPersonal.isChecked = prefs.maskPersonalNumbers
+        binding.switchMaskPersonal.setOnCheckedChangeListener { _, c -> prefs.maskPersonalNumbers = c }
+        binding.switchMaskNames.isChecked = prefs.maskHonorificNames
+        binding.switchMaskNames.setOnCheckedChangeListener { _, c -> prefs.maskHonorificNames = c }
+        binding.switchHideSender.isChecked = prefs.hideSender
+        binding.switchHideSender.setOnCheckedChangeListener { _, c -> prefs.hideSender = c }
+
         // --- 감지 대상 앱 ---
         binding.btnPackages.setOnClickListener { choosePackages() }
 
@@ -138,6 +152,11 @@ class MainActivity : AppCompatActivity() {
             "✅ 연결됨: ${prefs.calendarName}"
         } else {
             "⚠️ 연결 안 됨 (캘린더 저장 시 기기 캘린더 앱이 열립니다)"
+        }
+        binding.statusScreenReader.text = if (ScreenReaderService.isEnabled(this)) {
+            "✅ 화면 읽기 켜짐 (끄려면 접근성 설정에서)"
+        } else {
+            "⚪ 화면 읽기 꺼짐 (선택 기능)"
         }
         val bm = prefs.briefingMinuteOfDay
         binding.btnBriefingTime.text = "브리핑 시각: ${Formats.time(java.time.LocalTime.of(bm / 60, bm % 60))}"
@@ -230,7 +249,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runTest() {
-        val text = binding.inputTest.text?.toString().orEmpty()
+        val text = prefs.privacyFilter().redact(binding.inputTest.text?.toString().orEmpty())
         val parser = ScheduleParser()
         val detection = com.sooparo.schedulecatcher.core.MessageAnalyzer.Detection(
             parser.parse(text),

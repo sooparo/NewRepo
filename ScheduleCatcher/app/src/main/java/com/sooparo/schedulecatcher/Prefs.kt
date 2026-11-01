@@ -86,9 +86,36 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_BRIEFING_TIME, 7 * 60)
         set(value) = sp.edit { putInt(KEY_BRIEFING_TIME, value) }
 
+    // ---- 개인정보 가리기 (기본 모두 켜짐) ----
+    var maskRegistrationNumbers: Boolean
+        get() = sp.getBoolean(KEY_MASK_REG, true)
+        set(value) = sp.edit { putBoolean(KEY_MASK_REG, value) }
+
+    var maskPersonalNumbers: Boolean
+        get() = sp.getBoolean(KEY_MASK_PERSONAL, true)
+        set(value) = sp.edit { putBoolean(KEY_MASK_PERSONAL, value) }
+
+    var maskHonorificNames: Boolean
+        get() = sp.getBoolean(KEY_MASK_NAMES, true)
+        set(value) = sp.edit { putBoolean(KEY_MASK_NAMES, value) }
+
+    /** 보낸 사람 이름을 저장/표시하지 않음 (앱 이름만) */
+    var hideSender: Boolean
+        get() = sp.getBoolean(KEY_HIDE_SENDER, true)
+        set(value) = sp.edit { putBoolean(KEY_HIDE_SENDER, value) }
+
+    fun privacyFilter() = com.sooparo.schedulecatcher.core.PrivacyFilter(
+        maskRegistrationNumbers = maskRegistrationNumbers,
+        maskPersonalNumbers = maskPersonalNumbers,
+        maskHonorificNames = maskHonorificNames,
+    )
+
     var monitoredPackages: Set<String>
         get() = sp.getStringSet(KEY_PACKAGES, null)?.toSet() ?: DEFAULT_PACKAGES.keys
-        set(value) = sp.edit { putStringSet(KEY_PACKAGES, value) }
+        set(value) {
+            sp.edit { putStringSet(KEY_PACKAGES, value) }
+            ScreenReaderService.applyPackages(app)
+        }
 
     /** 최근 메시지 알림을 보낸 앱(감지 대상 선택 목록에 표시) */
     val seenPackages: Set<String>
@@ -123,6 +150,10 @@ class Prefs(context: Context) {
         private const val KEY_THIRD_BOTH = "third_button_both"
         private const val KEY_BRIEFING = "briefing_enabled"
         private const val KEY_BRIEFING_TIME = "briefing_time"
+        private const val KEY_MASK_REG = "mask_registration_numbers"
+        private const val KEY_MASK_PERSONAL = "mask_personal_numbers"
+        private const val KEY_MASK_NAMES = "mask_honorific_names"
+        private const val KEY_HIDE_SENDER = "hide_sender"
     }
 }
 
