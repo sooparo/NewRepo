@@ -244,6 +244,30 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .cp.saved { border-color: var(--accent); color: var(--accent); }
 .x { flex: none; width: 36px; height: 40px; color: var(--muted); font-size: 16px; }
 
+/* 요일별 장보기 */
+.shop-view { margin: 0 0 10px; }
+.dayshops { display: grid; gap: 10px; }
+.dayshop { padding: 0; overflow: hidden; }
+.dayshop-head {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; list-style: none;
+}
+.dayshop-head::-webkit-details-marker { display: none; }
+.dayshop-head::after { content: '▾'; color: var(--muted); margin-left: 4px; }
+.dayshop:not([open]) .dayshop-head::after { content: '▸'; }
+.dayshop-head .dname { font-weight: 800; font-size: 17px; }
+.dayshop-head .dname.weekend { color: var(--warn); }
+.dayshop-head .ddate { color: var(--muted); font-size: 13px; }
+.dayshop-head .today-badge { font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 1px 6px; }
+.dayshop-head .dcount { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--muted); }
+.dayshop-head .dcount.complete { color: var(--ok); }
+.mealshop { border-top: 1px solid var(--line); padding: 8px 10px 6px; }
+.mealshop.skipped { opacity: 0.55; }
+.mealshop-head { font-size: 12px; font-weight: 800; color: var(--muted); padding: 2px 4px; }
+.menu-name { font-weight: 700; padding: 6px 4px 0; }
+.mealshop .items .item { border-top: 0; }
+.menu-empty { margin: 2px 4px 6px; }
+.pantry-line { font-size: 12px; color: var(--muted); margin: 4px 4px 2px; }
+
 /* ───────── 레시피 ───────── */
 .search { width: 100%; margin-bottom: 10px; }
 .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin: 0 -16px 8px; padding-left: 16px; padding-right: 16px; scrollbar-width: none; }

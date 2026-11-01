@@ -4,11 +4,12 @@ import { FRUITS, fruitById, seasonalFruits } from './data/fruits.js';
 import { generateWeek, reroll, setMeal, toggleSkip, getRecipe } from './planner.js';
 import {
   buildShoppingList, groupByCategory, formatQty, coupangUrl, extractCoupangLink, guessCategory, listToText, itemKey, parseItemInput,
+  buildDayList, allOccurrences, occKeysOf, migrateShopState, dayListToText, formatNeed,
 } from './shopping.js';
 import { loadDB, saveDB, parseBackup, pruneOld, emptyDB } from './storage.js';
 import { mondayOf, addDays, DAY_NAMES, shortDate, weekLabel, monthOfWeek, toKey } from './date.js';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const $ = (sel) => document.querySelector(sel);
 
 let db = loadDB();
@@ -19,7 +20,11 @@ const ui = {
   sheetPushed: false,
   recipeFilter: 'all',
   recipeSearch: '',
+  openState: {}, // 접기/펼치기 상태 (다시 그려도 유지)
 };
+
+/** <details> 열림 상태: 사용자가 바꾼 값이 있으면 그걸, 없으면 기본값 */
+const openAttr = (id, def) => ((ui.openState[id] ?? def) ? 'open' : '');
 
 // ───────────────────────────── 유틸 ─────────────────────────────
 
@@ -57,8 +62,14 @@ function savePlan(plan) {
 
 function shopState(week = currentWeek()) {
   db.shopping[week] ??= { removed: [], bought: [], custom: [] };
-  return db.shopping[week];
+  const st = db.shopping[week];
+  // 예전 버전에서 저장한 구매/빼기 상태를 메뉴별 형식으로 변환 (한 번만)
+  const plan = db.plans[week];
+  if (plan && migrateShopState(allOccurrences(plan, st, db.prefs.staples), st)) persist();
+  return st;
 }
+
+const shopView = () => db.prefs.shopView ?? 'day';
 
 const isFav = (id) => db.prefs.favorites.includes(id);
 const isDisliked = (id) => db.prefs.disliked.includes(id);
@@ -316,6 +327,7 @@ function itemSheet({ key }) {
   const saved = db.prefs.links[it.name];
   const isStaple = db.prefs.staples.some((s) => itemKey(s.name, s.unit) === key);
   const isRemoved = removed.some((x) => x.key === key);
+  const isActive = items.some((x) => x.key === key);
   return {
     title: `${esc(it.name)} <small class="iqty">${formatQty(it.qty, it.unit)}</small>`,
     body: `
@@ -336,9 +348,8 @@ function itemSheet({ key }) {
 
       <div class="btnrow">
         <button class="btn wide" data-action="staple" data-key="${esc(key)}">${isStaple ? '📌 매주 고정 해제' : '📌 매주 자동으로 넣기'}</button>
-        ${isRemoved
-          ? `<button class="btn wide" data-action="shop-restore" data-key="${esc(key)}">↩️ 다시 목록에 넣기</button>`
-          : `<button class="btn wide danger" data-action="shop-remove" data-key="${esc(key)}">✕ 이번 주 목록에서 빼기</button>`}
+        ${isRemoved ? `<button class="btn wide" data-action="shop-restore" data-key="${esc(key)}">↩️ 다시 목록에 넣기</button>` : ''}
+        ${isActive ? `<button class="btn wide danger" data-action="shop-remove" data-key="${esc(key)}">✕ 이번 주 모든 메뉴에서 빼기</button>` : ''}
       </div>`,
   };
 }
@@ -371,23 +382,134 @@ window.addEventListener('popstate', () => {
 
 // ───────────────────────────── 장보기 탭 ─────────────────────────────
 
+function cpLink(name) {
+  const saved = db.prefs.links[name];
+  return `<a class="cp ${saved ? 'saved' : ''}" href="${esc(coupangUrl(name, db.prefs.links))}" target="_blank" rel="noopener">${saved ? '⭐쿠팡' : '쿠팡'}</a>`;
+}
+
 function renderShop() {
   const week = currentWeek();
   const plan = getPlan(week);
   if (!plan) return `<p class="empty">이 주에는 기록된 식단이 없어요.</p>`;
-  const { items, removed } = buildShoppingList(plan, shopState(week), db.prefs.staples);
-  const buyable = items.filter((it) => it.cat !== 'pantry');
-  const done = buyable.filter((it) => it.bought).length;
-  const pct = buyable.length ? Math.round((done / buyable.length) * 100) : 0;
+  const st = shopState(week);
+  const view = shopView();
+  const body = view === 'day' ? renderShopByDay(plan, st) : renderShopByCategory(plan, st);
+
+  return `
+    <div class="shop-summary">
+      <div class="txt"><strong>${body.done} / ${body.total}</strong> 구매 완료
+        <div class="progress"><i style="width:${body.total ? Math.round((body.done / body.total) * 100) : 0}%"></i></div>
+      </div>
+      <button class="btn small" data-action="share-list">📤 공유</button>
+    </div>
+    <div class="seg shop-view">
+      <button data-action="shop-view" data-view="day" aria-pressed="${view === 'day'}">📅 요일별 메뉴</button>
+      <button data-action="shop-view" data-view="cat" aria-pressed="${view === 'cat'}">🥬 종류별 (한 번에)</button>
+    </div>
+    <form class="add-row" data-form="shop-add" autocomplete="off">
+      <input name="entry" placeholder="넣을 것 (예: 우유 1L, 계란 30개)" enterkeyhint="done" aria-label="장보기 항목 추가">
+      <button class="btn primary" type="submit">넣기</button>
+    </form>
+    <p class="hint">${view === 'day'
+      ? '메뉴마다 필요한 재료예요. <b>🔁</b> 표시는 다른 날에도 쓰는 재료라 한 번에 사면 좋아요.'
+      : '일주일치 재료를 합친 양이에요. 한 번에 장볼 때 편해요.'} 품목 이름을 누르면 자주 사는 쿠팡 상품을 저장할 수 있어요(⭐).</p>
+    ${body.html}`;
+}
+
+/** 요일 → 아침/저녁 → 메뉴 → 재료 */
+function renderShopByDay(plan, st) {
+  const week = plan.weekStart;
+  const { days, extras, removed } = buildDayList(plan, st, db.prefs.staples);
+  const todayIdx = week === thisWeek() ? (new Date().getDay() + 6) % 7 : -1;
+  let done = 0;
+  let total = 0;
 
   const row = (it) => `
     <li class="item ${it.bought ? 'bought' : ''}">
-      <button class="check" data-action="shop-toggle" data-key="${esc(it.key)}" aria-label="${esc(it.name)} 구매 완료"><i>✓</i></button>
+      <button class="check" data-action="occ-toggle" data-okey="${esc(it.okey)}" aria-label="${esc(it.name)} 구매 완료"><i>✓</i></button>
+      <button class="item-body" data-action="open-item" data-key="${esc(it.key)}">
+        <span class="iname">${esc(it.name)}</span><span class="iqty">${formatNeed(it.qty, it.unit)}</span>
+        ${it.otherDays.length ? `<span class="iuse">🔁 ${it.otherDays.map((d) => DAY_NAMES[d]).join('·')}에도 써요</span>` : ''}
+      </button>
+      ${cpLink(it.name)}
+      <button class="x" data-action="occ-remove" data-okey="${esc(it.okey)}" aria-label="${esc(it.name)} 빼기">✕</button>
+    </li>`;
+  const list = (items) => {
+    total += items.length;
+    done += items.filter((it) => it.bought).length;
+    return items.length ? `<ul class="items">${items.map(row).join('')}</ul>` : '<p class="hint menu-empty">살 재료를 모두 뺐어요.</p>';
+  };
+
+  const mealHtml = (m) => {
+    const label = m.meal === 'breakfast' ? '☀️ 아침' : '🌙 저녁';
+    if (m.skipped) return `<div class="mealshop skipped"><div class="mealshop-head">${label} · ${m.meal === 'dinner' ? '외식' : '건너뜀'} <small>(장보기 제외)</small></div></div>`;
+    const groups = m.recipes.map((r) => `
+      <div class="menu-name">${r.emoji} ${esc(r.name)}${r.kit ? ' <span class="badge kit">🎁 밀키트</span>' : ''}</div>
+      ${list(m.items.filter((it) => it.recipeId === r.id))}`);
+    if (m.fruit) groups.push(`<div class="menu-name">${m.fruit.emoji} ${m.fruit.name} <small class="hint">과일</small></div>${list(m.items.filter((it) => it.slot === 'fruit'))}`);
+    const pantry = [...new Set(m.pantry.map((it) => it.name))];
+    return `
+      <div class="mealshop">
+        <div class="mealshop-head">${label}</div>
+        ${groups.join('')}
+        ${pantry.length ? `<p class="pantry-line">🧂 집에 있는지 확인: ${pantry.map(esc).join(' · ')}</p>` : ''}
+      </div>`;
+  };
+
+  const dayHtml = days
+    .map(({ day, meals }) => {
+      const before = { done, total };
+      const inner = meals.map(mealHtml).join('');
+      const dDone = done - before.done;
+      const dTotal = total - before.total;
+      const open = todayIdx < 0 || day >= todayIdx;
+      return `
+        <details class="dayshop card" data-open-id="day-${week}-${day}" ${openAttr(`day-${week}-${day}`, open)}>
+          <summary class="dayshop-head">
+            <span class="dname ${day >= 5 ? 'weekend' : ''}">${DAY_NAMES[day]}</span>
+            <span class="ddate">${shortDate(addDays(week, day))}</span>
+            ${day === todayIdx ? '<span class="today-badge">오늘</span>' : ''}
+            <span class="dcount ${dTotal && dDone === dTotal ? 'complete' : ''}">${dTotal ? (dDone === dTotal ? '✓ 완료' : `${dDone}/${dTotal}`) : ''}</span>
+          </summary>
+          ${inner}
+        </details>`;
+    })
+    .join('');
+
+  const extrasHtml = extras.length
+    ? `<section class="cat"><h3>🛒 그 외 (직접 넣은 것 · 매주 고정) · ${extras.length}</h3><div class="card">${list(extras)}</div></section>`
+    : '';
+  const removedHtml = removed.length
+    ? `<details class="cat" data-open-id="removed" ${openAttr('removed', false)}><summary>🗑 뺀 항목 · ${removed.length}</summary>
+        <ul class="items card">${removed
+          .map((it) => `
+          <li class="item">
+            <div class="item-body" style="padding-left:10px">
+              <span class="iname">${esc(it.name)}</span><span class="iqty">${formatNeed(it.qty, it.unit)}</span>
+              <span class="iuse">${esc(it.use)}</span>
+            </div>
+            <button class="btn small" data-action="occ-restore" data-okey="${esc(it.okey)}">다시 넣기</button>
+          </li>`)
+          .join('')}</ul></details>`
+    : '';
+
+  return { done, total, html: `<div class="dayshops">${dayHtml}</div>${extrasHtml}${removedHtml}` };
+}
+
+/** 종류별(채소·정육…) 일주일치 합산 */
+function renderShopByCategory(plan, st) {
+  const { items, removed } = buildShoppingList(plan, st, db.prefs.staples);
+  const buyable = items.filter((it) => it.cat !== 'pantry');
+  const done = buyable.filter((it) => it.bought).length;
+
+  const row = (it) => `
+    <li class="item ${it.bought ? 'bought' : ''}">
+      <button class="check" data-action="shop-toggle" data-key="${esc(it.key)}" aria-label="${esc(it.name)} 구매 완료"><i>${!it.bought && it.boughtCount ? '½' : '✓'}</i></button>
       <button class="item-body" data-action="open-item" data-key="${esc(it.key)}">
         <span class="iname">${esc(it.name)}</span><span class="iqty">${formatQty(it.qty, it.unit)}</span>
-        <span class="iuse">${esc(it.uses.slice(0, 2).join(', '))}${it.uses.length > 2 ? ` 외 ${it.uses.length - 2}` : ''}</span>
+        <span class="iuse">${!it.bought && it.boughtCount ? `${it.boughtCount}/${it.occ.length} 메뉴분 구매 · ` : ''}${esc(it.uses.slice(0, 2).join(', '))}${it.uses.length > 2 ? ` 외 ${it.uses.length - 2}` : ''}</span>
       </button>
-      <a class="cp ${db.prefs.links[it.name] ? 'saved' : ''}" href="${esc(coupangUrl(it.name, db.prefs.links))}" target="_blank" rel="noopener">${db.prefs.links[it.name] ? '⭐쿠팡' : '쿠팡'}</a>
+      ${cpLink(it.name)}
       <button class="x" data-action="shop-remove" data-key="${esc(it.key)}" aria-label="${esc(it.name)} 빼기">✕</button>
     </li>`;
 
@@ -396,14 +518,14 @@ function renderShop() {
       const list = [...g.items].sort((a, b) => Number(a.bought) - Number(b.bought));
       const inner = `<ul class="items card">${list.map(row).join('')}</ul>`;
       if (g.key === 'pantry') {
-        return `<details class="cat"><summary>${g.emoji} ${g.label} · ${g.items.length}</summary>${inner}</details>`;
+        return `<details class="cat" data-open-id="pantry" ${openAttr('pantry', false)}><summary>${g.emoji} ${g.label} · ${g.items.length}</summary>${inner}</details>`;
       }
       return `<section class="cat"><h3>${g.emoji} ${g.label} · ${g.items.length}</h3>${inner}</section>`;
     })
     .join('');
 
   const removedHtml = removed.length
-    ? `<details class="cat"><summary>🗑 뺀 항목 · ${removed.length}</summary>
+    ? `<details class="cat" data-open-id="removed" ${openAttr('removed', false)}><summary>🗑 뺀 항목 · ${removed.length}</summary>
         <ul class="items card">${removed
           .map((it) => `
           <li class="item">
@@ -415,20 +537,7 @@ function renderShop() {
           .join('')}</ul></details>`
     : '';
 
-  return `
-    <div class="shop-summary">
-      <div class="txt"><strong>${done} / ${buyable.length}</strong> 구매 완료
-        <div class="progress"><i style="width:${pct}%"></i></div>
-      </div>
-      <button class="btn small" data-action="share-list">📤 공유</button>
-    </div>
-    <form class="add-row" data-form="shop-add" autocomplete="off">
-      <input name="entry" placeholder="넣을 것 (예: 우유 1L, 계란 30개)" enterkeyhint="done" aria-label="장보기 항목 추가">
-      <button class="btn primary" type="submit">넣기</button>
-    </form>
-    <p class="hint">‘쿠팡’을 누르면 상품 검색이 열려요. 품목 이름을 누르면 자주 사는 상품 링크를 저장할 수 있어요(⭐).</p>
-    ${groups || '<p class="empty">장보기 목록이 비어 있어요.</p>'}
-    ${removedHtml}`;
+  return { done, total: buyable.length, html: `${groups || '<p class="empty">장보기 목록이 비어 있어요.</p>'}${removedHtml}` };
 }
 
 // ───────────────────────────── 레시피 탭 ─────────────────────────────
@@ -599,17 +708,43 @@ const actions = {
   },
 
   // 장보기
-  'shop-toggle': ({ key }) => {
-    toggleIn(shopState().bought, key);
+  'shop-view': ({ view }) => {
+    db.prefs.shopView = view;
     persist();
   },
+  // 종류별 화면: 품목 전체(모든 메뉴분) 구매 체크
+  'shop-toggle': ({ key }) => {
+    const st = shopState();
+    const removed = new Set(st.removed);
+    const keys = occKeysOf(allOccurrences(getPlan(), st, db.prefs.staples), key).filter((k) => !removed.has(k));
+    const allBought = keys.every((k) => st.bought.includes(k));
+    st.bought = allBought ? st.bought.filter((k) => !keys.includes(k)) : [...new Set([...st.bought, ...keys])];
+    persist();
+  },
+  // 요일별 화면: 메뉴 하나의 재료만 체크
+  'occ-toggle': ({ okey }) => {
+    toggleIn(shopState().bought, okey);
+    persist();
+  },
+  'occ-remove': ({ okey }) => {
+    const st = shopState();
+    if (okey.startsWith('c:')) st.custom = st.custom.filter((c) => `c:${c.id}` !== okey);
+    else if (!st.removed.includes(okey)) st.removed.push(okey);
+    persist();
+    toast('뺐어요 (맨 아래 ‘뺀 항목’에서 되돌릴 수 있어요)');
+  },
+  'occ-restore': ({ okey }) => {
+    const st = shopState();
+    st.removed = st.removed.filter((k) => k !== okey);
+    persist();
+    toast('다시 넣었어요');
+  },
+  // 품목 전체 빼기 (모든 요일·메뉴)
   'shop-remove': ({ key }) => {
     const st = shopState();
-    const before = st.custom.length;
     st.custom = st.custom.filter((c) => itemKey(c.name, c.unit) !== key);
-    if (st.custom.length === before || buildShoppingList(getPlan(), st, db.prefs.staples).items.some((it) => it.key === key)) {
-      if (!st.removed.includes(key)) st.removed.push(key);
-    }
+    const keys = occKeysOf(allOccurrences(getPlan(), st, db.prefs.staples), key);
+    st.removed = [...new Set([...st.removed, ...keys])];
     persist();
     toast('목록에서 뺐어요 (아래 ‘뺀 항목’에서 되돌릴 수 있어요)');
     if (ui.sheet?.type === 'item') {
@@ -619,7 +754,8 @@ const actions = {
   },
   'shop-restore': ({ key }) => {
     const st = shopState();
-    st.removed = st.removed.filter((k) => k !== key);
+    const keys = new Set(occKeysOf(allOccurrences(getPlan(), st, db.prefs.staples), key));
+    st.removed = st.removed.filter((k) => !keys.has(k));
     persist();
     toast('다시 넣었어요');
   },
@@ -668,8 +804,11 @@ const actions = {
   },
   'share-list': async () => {
     const week = currentWeek();
-    const { items } = buildShoppingList(getPlan(week), shopState(week), db.prefs.staples);
-    const text = listToText(items, `장보기 (${weekLabel(week)})`);
+    const plan = getPlan(week);
+    const title = `장보기 (${weekLabel(week)})`;
+    const text = shopView() === 'day'
+      ? dayListToText(buildDayList(plan, shopState(week), db.prefs.staples), week, title)
+      : listToText(buildShoppingList(plan, shopState(week), db.prefs.staples).items, title);
     try {
       if (navigator.share) await navigator.share({ text });
       else {
@@ -741,6 +880,16 @@ document.addEventListener('submit', (e) => {
   toast(`‘${name}’ 넣었어요`);
   $('[data-form="shop-add"] input')?.focus();
 });
+
+// toggle 이벤트는 버블링되지 않아서 캡처 단계에서 받는다
+document.addEventListener(
+  'toggle',
+  (e) => {
+    const id = e.target.dataset?.openId;
+    if (id) ui.openState[id] = e.target.open;
+  },
+  true,
+);
 
 document.addEventListener('input', (e) => {
   if (e.target.dataset.input === 'recipe-search') {
