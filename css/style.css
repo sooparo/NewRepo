@@ -123,9 +123,11 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .badge.western { background: #e6effd; color: #2f5fb3; }
 .badge.spicy { background: #fde2e2; color: #b42323; }
 .badge.fav { background: var(--accent-soft); color: var(--accent); }
+.badge.kit { background: #efe6fb; color: #6b3fb0; }
 @media (prefers-color-scheme: dark) {
   .badge.western { background: #22324d; color: #9ec0ff; }
   .badge.spicy { background: #4a2222; color: #ffa3a3; }
+  .badge.kit { background: #34284a; color: #cdb3ff; }
 }
 .empty { text-align: center; color: var(--muted); padding: 40px 0; }
 

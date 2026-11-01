@@ -8,7 +8,7 @@ const WEEK = '2026-11-02'; // 월요일
 
 test('레시피 데이터 형식이 올바르다', () => {
   const ids = new Set();
-  const cats = new Set(['veg', 'fruit', 'meat', 'sea', 'egg', 'proc', 'grain', 'etc', 'pantry']);
+  const cats = new Set(['kit', 'veg', 'fruit', 'meat', 'sea', 'egg', 'proc', 'grain', 'etc', 'pantry']);
   for (const r of RECIPES) {
     assert.ok(!ids.has(r.id), `중복 id ${r.id}`);
     ids.add(r.id);
@@ -44,6 +44,9 @@ for (let seed = 1; seed <= 200; seed++) {
     assert.equal(new Set(mains).size, 7, '저녁 중복');
     const western = mains.filter((id) => getRecipe(id).type === 'western').length;
     assert.equal(western, 2, '양식 2회');
+    const kitDays = mains.map((id, i) => (getRecipe(id).kit ? i : -1)).filter((i) => i >= 0);
+    assert.equal(kitDays.length, 2, '밀키트 2회');
+    assert.ok(kitDays.every((i) => i < 5), '밀키트는 평일에만');
     const spicy = plan.days.flatMap((d) => [d.dinner.main, d.dinner.soup]).filter((id) => id && getRecipe(id).spicy).length;
     assert.ok(spicy <= 1, '매운 요리 1회 이하');
     plan.days.forEach((d, day) => {
@@ -68,11 +71,12 @@ test('싫어요 레시피는 추천하지 않는다', () => {
   }
 });
 
-test('양식 0회 / 매운요리 0회 설정', () => {
+test('양식 0회 / 매운요리 0회 / 밀키트 0회 설정', () => {
   for (let seed = 1; seed < 50; seed++) {
-    const plan = generateWeek(WEEK, { westernPerWeek: 0, spicyPerWeek: 0 }, {}, mulberry32(seed));
+    const plan = generateWeek(WEEK, { westernPerWeek: 0, spicyPerWeek: 0, mealKitPerWeek: 0 }, {}, mulberry32(seed));
     for (const d of plan.days) {
       assert.notEqual(getRecipe(d.dinner.main).type, 'western');
+      assert.ok(!getRecipe(d.dinner.main).kit);
       assert.ok(!getRecipe(d.dinner.main).spicy && !(d.dinner.soup && getRecipe(d.dinner.soup).spicy));
     }
   }
@@ -104,4 +108,26 @@ test('직접 고르기 / 외식 토글', () => {
   const p3 = toggleSkip(p2, 0, 'dinner');
   assert.equal(p3.days[0].skip.dinner, true);
   assert.equal(toggleSkip(p3, 0, 'dinner').days[0].skip.dinner, false);
+});
+
+test('밀키트 3회 + 양식 3회도 규칙대로', () => {
+  for (let seed = 1; seed < 100; seed++) {
+    const plan = generateWeek(WEEK, { westernPerWeek: 3, mealKitPerWeek: 3 }, {}, mulberry32(seed));
+    const mains = plan.days.map((d) => getRecipe(d.dinner.main));
+    assert.equal(mains.filter((r) => r.kit).length, 3);
+    assert.equal(mains.filter((r) => r.type === 'western').length, 3);
+    assert.equal(new Set(mains.map((r) => r.id)).size, 7);
+  }
+});
+
+test('밀키트로 바꾸기 / 직접 요리로 바꾸기', () => {
+  const rng = mulberry32(5);
+  const plan = generateWeek(WEEK, DEFAULT_SETTINGS, {}, rng);
+  for (let day = 0; day < 7; day++) {
+    const isKit = !!getRecipe(plan.days[day].dinner.main).kit;
+    const toggled = reroll(plan, day, 'main', DEFAULT_SETTINGS, {}, rng, { kit: !isKit });
+    assert.equal(!!getRecipe(toggled.days[day].dinner.main).kit, !isKit, `day ${day}`);
+    const same = reroll(plan, day, 'main', DEFAULT_SETTINGS, {}, rng);
+    assert.equal(!!getRecipe(same.days[day].dinner.main).kit, isKit, '다시 추천은 밀키트 여부 유지');
+  }
 });

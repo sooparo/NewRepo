@@ -8,7 +8,7 @@ import {
 import { loadDB, saveDB, parseBackup, pruneOld, emptyDB } from './storage.js';
 import { mondayOf, addDays, DAY_NAMES, shortDate, weekLabel, monthOfWeek, toKey } from './date.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const $ = (sel) => document.querySelector(sel);
 
 let db = loadDB();
@@ -72,9 +72,11 @@ function toggleIn(arr, v) {
 
 const SLOT_LABEL = { breakfast: '아침', main: '저녁 메인', soup: '국·찌개', fruit: '과일' };
 const TYPE_LABEL = { breakfast: '아침', main: '한식', soup: '국·찌개', western: '양식' };
+const typeLabel = (r) => (r.kit ? `🎁 밀키트(${TYPE_LABEL[r.type]})` : TYPE_LABEL[r.type]);
 
 function badges(r) {
   const b = [`<span class="badge">⏱ ${r.time}분</span>`];
+  if (r.kit) b.push('<span class="badge kit">🎁 밀키트</span>');
   if (r.type === 'western') b.push('<span class="badge western">양식</span>');
   if (r.spicy) b.push('<span class="badge spicy">🌶 매움</span>');
   if (r.oneDish) b.push('<span class="badge">한 그릇</span>');
@@ -142,7 +144,7 @@ function renderPlan() {
           <span class="meal-label">저녁</span>
           <span class="meal-main">${m ? `${m.emoji} ${esc(m.name)}` : '-'} ${d.skip?.dinner ? '<span class="skip-tag">외식</span>' : ''}</span>
           <span class="meal-go">›</span>
-          <span class="meal-sub">${[s ? `+ ${s.emoji} ${esc(s.name)}` : '', m?.type === 'western' ? '<span class="badge western">양식</span>' : '', m ? `⏱${m.time}분` : '', m?.spicy || s?.spicy ? '🌶' : ''].filter(Boolean).join(' ')}</span>
+          <span class="meal-sub">${[s ? `+ ${s.emoji} ${esc(s.name)}` : '', m?.kit ? '<span class="badge kit">🎁 밀키트</span>' : '', m?.type === 'western' ? '<span class="badge western">양식</span>' : '', m ? `⏱${m.time}분` : '', m?.spicy || s?.spicy ? '🌶' : ''].filter(Boolean).join(' ')}</span>
         </button>
       </article>`;
     })
@@ -163,6 +165,7 @@ function recipeBody(r) {
   const ing = (i) => `<li>${esc(i[0])} <small>${i[1] ? formatIngredientQty(i[1], i[2]) : ''}</small></li>`;
   return `
     <div>${badges(r)}</div>
+    ${r.kit ? '<p class="hint">🎁 3~4인분 제품 1팩 기준이에요(2인분 제품이면 2팩). 쿠팡 로켓프레시로 전날 밤에 주문하면 다음 날 새벽에 와요.</p>' : ''}
     ${r.kidTip ? `<div class="kidtip">👶 ${esc(r.kidTip)}</div>` : ''}
     <div class="sub-h">재료 (4인 가족 기준)</div>
     <ul class="ings">${shop.map(ing).join('')}</ul>
@@ -262,7 +265,12 @@ function mealSheet({ day, slot }) {
         <button class="btn small ${d.skip?.dinner ? 'primary' : ''}" data-action="skip" data-day="${day}" data-meal="dinner">${d.skip?.dinner ? '✅ 외식 해제' : '🍽 외식 / 건너뛰기'}</button>
       </div>
       ${d.skip?.dinner ? '<p class="hint">외식으로 표시한 끼니는 장보기 목록에서 빠져요.</p>' : ''}
-      ${m ? recipeBlock(m, m.type === 'western' ? '양식 메인' : '한식 메인', `<button class="btn small primary" data-action="reroll" data-day="${day}" data-slot="main">🔄 다른 메뉴</button><button class="btn small" data-action="pick" data-day="${day}" data-slot="main">📋 직접 고르기</button>`) : ''}
+      ${m ? recipeBlock(m, m.kit ? `🎁 밀키트 · ${TYPE_LABEL[m.type]}` : m.type === 'western' ? '양식 메인' : '한식 메인', `
+        <button class="btn small primary" data-action="reroll" data-day="${day}" data-slot="main">🔄 ${m.kit ? '다른 밀키트' : '다른 메뉴'}</button>
+        <button class="btn small" data-action="pick" data-day="${day}" data-slot="main">📋 직접 고르기</button>
+        ${m.kit
+          ? `<button class="btn small" data-action="reroll" data-day="${day}" data-slot="main" data-kit="0">👩‍🍳 직접 요리로</button>`
+          : `<button class="btn small" data-action="reroll" data-day="${day}" data-slot="main" data-kit="1">🎁 밀키트로</button>`}`) : ''}
       ${soupHtml}`,
   };
 }
@@ -282,7 +290,7 @@ function pickSheet({ day, slot }) {
     current = slot === 'breakfast' ? d.breakfast : slot === 'main' ? d.dinner.main : d.dinner.soup;
     items = RECIPES.filter((r) => types.includes(r.type))
       .sort((a, b) => Number(isFav(b.id)) - Number(isFav(a.id)) || types.indexOf(a.type) - types.indexOf(b.type))
-      .map((r) => ({ id: r.id, emoji: r.emoji, name: r.name, meta: `${TYPE_LABEL[r.type]} · ${r.time}분${r.spicy ? ' · 🌶' : ''}${isFav(r.id) ? ' · ❤️' : ''}${isDisliked(r.id) ? ' · 🚫' : ''}` }));
+      .map((r) => ({ id: r.id, emoji: r.emoji, name: r.name, meta: `${typeLabel(r)} · ${r.time}분${r.spicy ? ' · 🌶' : ''}${isFav(r.id) ? ' · ❤️' : ''}${isDisliked(r.id) ? ' · 🚫' : ''}` }));
   }
   return {
     title: `${DAY_NAMES[day]}요일 ${SLOT_LABEL[slot]} 고르기`,
@@ -426,7 +434,7 @@ function renderShop() {
 // ───────────────────────────── 레시피 탭 ─────────────────────────────
 
 const RECIPE_FILTERS = [
-  ['all', '전체'], ['breakfast', '☀️ 아침'], ['main', '🍚 한식'], ['soup', '🍲 국·찌개'], ['western', '🍝 양식'], ['fav', '❤️ 즐겨찾기'], ['disliked', '🚫 제외'],
+  ['all', '전체'], ['breakfast', '☀️ 아침'], ['main', '🍚 한식'], ['soup', '🍲 국·찌개'], ['western', '🍝 양식'], ['kit', '🎁 밀키트'], ['fav', '❤️ 즐겨찾기'], ['disliked', '🚫 제외'],
 ];
 
 function recipeListHtml() {
@@ -435,7 +443,9 @@ function recipeListHtml() {
   const list = RECIPES.filter((r) => {
     if (f === 'fav' && !isFav(r.id)) return false;
     if (f === 'disliked' && !isDisliked(r.id)) return false;
-    if (!['all', 'fav', 'disliked'].includes(f) && r.type !== f) return false;
+    if (f === 'kit' && !r.kit) return false;
+    if (['main', 'western'].includes(f) && r.kit) return false; // 밀키트는 밀키트 탭에서
+    if (!['all', 'fav', 'disliked', 'kit'].includes(f) && r.type !== f) return false;
     if (q && !(r.name.includes(q) || r.ingredients.some((i) => i[0].includes(q)))) return false;
     return true;
   });
@@ -444,7 +454,7 @@ function recipeListHtml() {
     .map((r) => `
       <button class="pick recipe-row" data-action="open-recipe" data-id="${r.id}">
         <span class="em">${r.emoji}</span>
-        <span class="nm">${esc(r.name)}<br><span class="meta">${TYPE_LABEL[r.type]} · ${r.time}분${r.spicy ? ' · 🌶' : ''}${r.oneDish ? ' · 한 그릇' : ''}</span></span>
+        <span class="nm">${esc(r.name)}<br><span class="meta">${typeLabel(r)} · ${r.time}분${r.spicy ? ' · 🌶' : ''}${r.oneDish ? ' · 한 그릇' : ''}</span></span>
         <span>${isFav(r.id) ? '❤️' : ''}${isDisliked(r.id) ? '🚫' : ''}</span>
       </button>`)
     .join('');
@@ -473,6 +483,10 @@ function renderSettings() {
     <section class="card set">
       <h3>🍝 양식 저녁</h3><p class="hint">일주일에 몇 번 양식을 넣을까요?</p>
       ${seg('westernPerWeek', [[0, '안 함'], [1, '1회'], [2, '2회'], [3, '3회']])}
+    </section>
+    <section class="card set">
+      <h3>🎁 밀키트 저녁</h3><p class="hint">바쁜 평일 저녁에 넣어요. 한식·양식 밀키트 ${RECIPES.filter((r) => r.kit).length}종 중에서 추천해요.</p>
+      ${seg('mealKitPerWeek', [[0, '안 함'], [1, '1회'], [2, '2회'], [3, '3회']])}
     </section>
     <section class="card set">
       <h3>🌶 매운 요리</h3><p class="hint">아이용으로 덜어두는 팁과 함께 추천해요.</p>
@@ -540,9 +554,10 @@ const actions = {
     ui.weekOffset = Math.max(-4, Math.min(3, ui.weekOffset + Number(dir)));
   },
   'open-meal': ({ day, slot }) => openSheet({ type: 'meal', day: +day, slot }),
-  reroll: ({ day, slot }) => {
-    savePlan(reroll(getPlan(), +day, slot, db.settings, db.prefs));
-    toast('다른 메뉴로 바꿨어요');
+  reroll: ({ day, slot, kit }) => {
+    const options = kit === undefined ? {} : { kit: kit === '1' };
+    savePlan(reroll(getPlan(), +day, slot, db.settings, db.prefs, Math.random, options));
+    toast(kit === '1' ? '밀키트로 바꿨어요' : kit === '0' ? '직접 요리 메뉴로 바꿨어요' : '다른 메뉴로 바꿨어요');
   },
   pick: ({ day, slot }) => {
     ui.sheet = { type: 'pick', day: +day, slot, back: ui.sheet };

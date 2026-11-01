@@ -1,6 +1,6 @@
 // 오프라인 지원 서비스워커
 // 파일을 수정하면 VERSION을 올려야 휴대폰에 새 버전이 반영됩니다.
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const CACHE = `weekly-meal-${VERSION}`;
 const ASSETS = [
   './',

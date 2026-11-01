@@ -12,8 +12,10 @@
 //   oneDish  : 한 그릇 요리 (국 없이 추천)
 //   base     : 아침 종류 (bread | cereal | rice | etc) — 연속 같은 종류 회피용
 //   kidTip   : 아이들(6세·4세) 먹일 때 팁
+//   kit      : 밀키트 (평일 저녁에 주 N회 배치, 재료는 밀키트 1개 + 추가 재료)
 
 export const CATEGORIES = [
+  { key: 'kit', label: '밀키트', emoji: '🎁' },
   { key: 'veg', label: '채소', emoji: '🥬' },
   { key: 'fruit', label: '과일', emoji: '🍎' },
   { key: 'meat', label: '정육', emoji: '🥩' },
@@ -522,5 +524,102 @@ export const RECIPES = [
       ['밀가루', 1, '큰술', 'pantry']],
     steps: ['소고기에 밀가루를 묻혀 버터에 겉면을 굽는다.', '채소를 넣어 볶고 파스타소스와 물 4컵을 넣는다.', '약불에서 50분 뭉근히 끓이고 구운 빵을 곁들인다.'],
     kidTip: '주말에 넉넉히 끓여두면 다음날 덮밥으로도 좋아요.',
+  },
+  // ─────────────────────────── 밀키트 ───────────────────────────
+  // 4인 가족(어른2+유아2) 기준 3~4인분 1팩. 2인분 제품이면 2팩.
+  {
+    id: 'kit-millefeuille', type: 'main', cuisine: 'korean', kit: true, name: '밀푀유나베 밀키트', emoji: '🍲', time: 20, protein: 'beef', oneDish: true,
+    ingredients: [['밀푀유나베 밀키트', 1, '팩', 'kit'], ['칼국수면', 300, 'g', 'grain']],
+    steps: ['배추·깻잎·고기를 겹겹이 쌓아 냄비에 둘러 담는다.', '동봉된 육수를 붓고 끓인다.', '건더기를 먹은 뒤 칼국수면을 넣어 마무리한다.'],
+    kidTip: '맵지 않고 고기·채소가 부드러워서 아이들과 먹기 좋은 1순위 밀키트예요.',
+  },
+  {
+    id: 'kit-bulgogi-jeongol', type: 'main', cuisine: 'korean', kit: true, name: '서울식 불고기전골 밀키트', emoji: '🥘', time: 15, protein: 'beef', oneDish: true,
+    ingredients: [['불고기전골 밀키트', 1, '팩', 'kit'], ['밥', 4, '공기', 'pantry']],
+    steps: ['양념된 고기와 채소, 당면을 냄비에 담는다.', '동봉 육수를 붓고 고기가 익을 때까지 끓인다.'],
+    kidTip: '달짝지근한 국물이라 밥 말아주면 아이들이 잘 먹어요. 당면은 가위로 짧게.',
+  },
+  {
+    id: 'kit-shabu', type: 'main', cuisine: 'korean', kit: true, name: '소고기 샤브샤브 밀키트', emoji: '🍲', time: 20, protein: 'beef', oneDish: true,
+    ingredients: [['샤브샤브 밀키트', 1, '팩', 'kit'], ['계란', 2, '개', 'egg'], ['밥', 2, '공기', 'pantry']],
+    steps: ['육수를 끓이고 채소를 먼저 넣는다.', '고기를 살짝 데쳐 소스에 찍어 먹는다.', '남은 육수에 밥과 계란을 넣어 죽으로 마무리.'],
+    kidTip: '마지막 계란죽은 아이들이 특히 좋아해요.',
+  },
+  {
+    id: 'kit-jjimdak', type: 'main', cuisine: 'korean', kit: true, name: '안동찜닭 밀키트', emoji: '🍗', time: 25, protein: 'chicken', oneDish: true,
+    ingredients: [['안동찜닭 밀키트', 1, '팩', 'kit'], ['밥', 4, '공기', 'pantry']],
+    steps: ['닭과 양념, 채소를 냄비에 넣고 물을 붓는다.', '뚜껑 덮고 중불에서 닭이 익을 때까지 졸인다.', '당면을 넣고 3분 더 졸인다.'],
+    kidTip: '건고추가 들어 있으면 빼고 조리하면 아이들도 먹을 수 있어요.',
+  },
+  {
+    id: 'kit-la-galbi', type: 'main', cuisine: 'korean', kit: true, name: '양념 LA갈비 밀키트', emoji: '🍖', time: 20, protein: 'beef',
+    ingredients: [['양념 LA갈비', 1, '팩', 'kit'], ['쌈채소', 1, '봉', 'veg']],
+    steps: ['팬을 달군 뒤 갈비를 올려 중불에서 앞뒤로 굽는다.', '양념이 타지 않게 뒤집어가며 익힌다.', '가위로 뼈를 따라 잘라 낸다.'],
+    kidTip: '뼈를 발라 한입 크기로 잘라주세요.',
+  },
+  {
+    id: 'kit-pork-galbi', type: 'main', cuisine: 'korean', kit: true, name: '양념 돼지갈비 밀키트', emoji: '🍖', time: 20, protein: 'pork',
+    ingredients: [['양념 돼지갈비', 1, '팩', 'kit'], ['쌈채소', 1, '봉', 'veg']],
+    steps: ['팬이나 에어프라이어(180℃ 15분)에 굽는다.', '중간에 한 번 뒤집어 양념이 타지 않게 한다.'],
+  },
+  {
+    id: 'kit-jjajang', type: 'main', cuisine: 'korean', kit: true, name: '짜장면 밀키트', emoji: '🍜', time: 15, protein: 'pork', oneDish: true,
+    ingredients: [['짜장면 밀키트', 1, '팩', 'kit'], ['오이', 1, '개', 'veg']],
+    steps: ['동봉된 짜장소스를 데운다.', '면을 삶아 찬물에 헹군 뒤 다시 따뜻한 물에 데친다.', '면에 소스를 붓고 채 썬 오이를 올린다.'],
+    kidTip: '아이들 최애 메뉴! 면을 가위로 잘라주고 턱받이 필수예요.',
+  },
+  {
+    id: 'kit-gungjung-tteok', type: 'main', cuisine: 'korean', kit: true, name: '궁중떡볶이 밀키트', emoji: '🍢', time: 15, protein: 'beef', oneDish: true,
+    ingredients: [['궁중떡볶이 밀키트', 1, '팩', 'kit'], ['계란', 4, '개', 'egg']],
+    steps: ['떡은 물에 살짝 헹군다.', '고기와 채소를 볶다가 떡과 간장 양념을 넣고 졸인다.', '삶은 계란을 곁들인다.'],
+    kidTip: '간장 떡볶이라 맵지 않아요. 4세는 떡을 잘게 잘라주세요.',
+  },
+  {
+    id: 'kit-chadol-doenjang', type: 'main', cuisine: 'korean', kit: true, name: '차돌 된장찌개 밀키트', emoji: '🍲', time: 15, protein: 'beef', oneDish: true,
+    ingredients: [['차돌 된장찌개 밀키트', 1, '팩', 'kit'], ['두부', 0.5, '모', 'proc'], ['밥', 4, '공기', 'pantry']],
+    steps: ['차돌박이를 먼저 볶아 기름을 낸다.', '물과 된장 소스, 채소를 넣고 끓인다.', '두부를 더 넣으면 양이 넉넉해져요.'],
+    kidTip: '청양고추는 어른 그릇에만 넣으세요.',
+  },
+  {
+    id: 'kit-budae', type: 'main', cuisine: 'korean', kit: true, name: '부대찌개 밀키트', emoji: '🍲', time: 20, protein: 'pork', oneDish: true, spicy: true,
+    ingredients: [['부대찌개 밀키트', 1, '팩', 'kit'], ['라면사리', 1, '개', 'grain'], ['밥', 4, '공기', 'pantry']],
+    steps: ['재료를 냄비에 둘러 담고 양념장을 올린다.', '육수를 붓고 끓인다.', '라면사리를 넣어 마무리.'],
+    kidTip: '양념장 풀기 전에 소시지·햄·떡을 아이 몫으로 먼저 건져 맑은 육수에 따로 끓여주세요.',
+  },
+  {
+    id: 'kit-dakgalbi', type: 'main', cuisine: 'korean', kit: true, name: '춘천 닭갈비 밀키트', emoji: '🔥', time: 20, protein: 'chicken', oneDish: true, spicy: true,
+    ingredients: [['춘천 닭갈비 밀키트', 1, '팩', 'kit'], ['밥', 2, '공기', 'pantry'], ['김가루', 1, '봉', 'sea']],
+    steps: ['팬에 양배추·고구마를 깔고 양념 닭을 올려 볶는다.', '닭이 익으면 떡을 넣고 볶는다.', '남은 양념에 밥과 김가루를 넣어 볶음밥으로.'],
+    kidTip: '아이 몫은 양념 넣기 전 고구마·양배추·닭을 덜어 간장으로 따로 볶아주세요.',
+  },
+  {
+    id: 'kit-udon', type: 'main', cuisine: 'korean', kit: true, name: '가쓰오 우동 밀키트', emoji: '🍜', time: 10, protein: 'fish', oneDish: true,
+    ingredients: [['우동 밀키트', 1, '팩', 'kit'], ['유부초밥 키트', 1, '봉', 'proc'], ['밥', 2, '공기', 'pantry']],
+    steps: ['육수를 끓이고 우동면을 넣어 2분 끓인다.', '어묵·유부 등 고명을 올린다.', '유부초밥을 곁들이면 든든해요.'],
+    kidTip: '면을 짧게 잘라 한 김 식혀주세요.',
+  },
+  {
+    id: 'kit-gambas', type: 'western', cuisine: 'western', kit: true, name: '감바스 알 아히요 밀키트', emoji: '🦐', time: 15, protein: 'seafood',
+    ingredients: [['감바스 밀키트', 1, '팩', 'kit'], ['바게트', 1, '개', 'grain'], ['스파게티면', 200, 'g', 'grain']],
+    steps: ['올리브유에 마늘을 약불로 볶아 향을 낸다.', '새우와 동봉 재료를 넣어 익힌다.', '바게트를 찍어 먹고, 남은 오일에 면을 볶아 파스타로.'],
+    kidTip: '페페론치노는 빼고 조리하면 아이들도 잘 먹어요.',
+  },
+  {
+    id: 'kit-toowoomba', type: 'western', cuisine: 'western', kit: true, name: '투움바 파스타 밀키트', emoji: '🍝', time: 15, protein: 'pork',
+    ingredients: [['투움바 파스타 밀키트', 1, '팩', 'kit']],
+    steps: ['면을 삶는다.', '베이컨과 채소를 볶다가 크림소스를 넣는다.', '면을 넣고 버무린다.'],
+    kidTip: '살짝 매콤할 수 있어요. 아이 몫은 소스에 우유를 조금 더 넣어 순하게.',
+  },
+  {
+    id: 'kit-hamburg', type: 'western', cuisine: 'western', kit: true, name: '함박스테이크 밀키트', emoji: '🍔', time: 15, protein: 'beef',
+    ingredients: [['함박스테이크 밀키트', 1, '팩', 'kit'], ['계란', 4, '개', 'egg'], ['브로콜리', 1, '송이', 'veg'], ['밥', 4, '공기', 'pantry']],
+    steps: ['패티를 약불에 뚜껑 덮어 앞뒤로 굽는다.', '동봉 소스를 데워 붓는다.', '계란 프라이와 데친 브로콜리를 곁들인다.'],
+    kidTip: '계란 프라이를 올려 함박 정식처럼 주면 아이들이 좋아해요.',
+  },
+  {
+    id: 'kit-chop-steak', type: 'western', cuisine: 'western', kit: true, name: '찹스테이크 밀키트', emoji: '🥩', time: 15, protein: 'beef',
+    ingredients: [['찹스테이크 밀키트', 1, '팩', 'kit'], ['밥', 4, '공기', 'pantry']],
+    steps: ['센불에 소고기를 먼저 굽는다.', '채소를 넣고 볶다가 동봉 소스로 버무린다.'],
+    kidTip: '고기를 작게 잘라 밥 위에 덮밥처럼 올려주세요.',
   },
 ];

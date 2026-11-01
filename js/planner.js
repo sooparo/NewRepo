@@ -5,6 +5,7 @@ import { monthOfWeek } from './date.js';
 
 export const DEFAULT_SETTINGS = {
   westernPerWeek: 2, // 양식 저녁 횟수
+  mealKitPerWeek: 2, // 밀키트 저녁 횟수 (평일에 배치)
   spicyPerWeek: 1, // 매운 요리 허용 횟수 (아이용 덜어두기 팁 제공)
   weekdayMaxMinutes: 40, // 평일 저녁 조리 시간 한도
   weekendMaxMinutes: 90, // 주말 저녁 조리 시간 한도
@@ -119,7 +120,7 @@ function overlap(recipe, ingredientSet) {
   return shoppingIngredients(recipe).filter((n) => ingredientSet.has(n)).length;
 }
 
-function pickMain(day, days, cuisine, prefs, settings, rng) {
+function pickMain(day, days, cuisine, kit, prefs, settings, rng) {
   const ctx = dinnerContext(days, day);
   const limit = isWeekend(day) ? settings.weekendMaxMinutes : settings.weekdayMaxMinutes;
   const usedIds = new Set(ctx.mains.map((r) => r.id));
@@ -127,7 +128,8 @@ function pickMain(day, days, cuisine, prefs, settings, rng) {
     .map((d) => getRecipe(d?.dinner?.main)?.protein)
     .filter(Boolean);
   const type = cuisine === 'western' ? 'western' : 'main';
-  const pool = recipesOfType(type).filter((r) => !prefs.disliked.includes(r.id));
+  // 밀키트 날은 밀키트만, 직접 요리하는 날은 밀키트 제외 (완화하지 않는 조건)
+  const pool = recipesOfType(type).filter((r) => !prefs.disliked.includes(r.id) && !!r.kit === kit);
   const filters = [
     (r) => !usedIds.has(r.id),
     (r) => r.time <= limit,
@@ -162,14 +164,16 @@ function pickSoup(day, days, main, prefs, settings, rng) {
   return pickWithRelax(pool, filters, score, rng);
 }
 
-/** 양식 요일 선택: 서로 붙지 않게 */
-function chooseWesternDays(count, rng) {
+/** 요일 고르기: 가능한 한 서로 붙지 않게 */
+function chooseSpreadDays(count, candidates, rng) {
   const chosen = [];
-  for (const d of shuffle([0, 1, 2, 3, 4, 5, 6], rng)) {
+  const order = shuffle(candidates, rng);
+  for (const d of order) {
     if (chosen.length >= count) break;
     if (chosen.some((c) => Math.abs(c - d) === 1)) continue;
     chosen.push(d);
   }
+  for (const d of order) if (chosen.length < count && !chosen.includes(d)) chosen.push(d); // 자리가 모자라면 붙여서라도
   return chosen;
 }
 
@@ -185,13 +189,14 @@ export function generateWeek(weekStart, settings = DEFAULT_SETTINGS, prefsIn = {
   const s = { ...DEFAULT_SETTINGS, ...settings };
   const prefs = normalizePrefs(prefsIn);
   const fruits = assignFruits(monthOfWeek(weekStart), rng);
-  const westernDays = new Set(chooseWesternDays(s.westernPerWeek, rng));
+  const westernDays = new Set(chooseSpreadDays(s.westernPerWeek, [0, 1, 2, 3, 4, 5, 6], rng));
+  const kitDays = new Set(chooseSpreadDays(s.mealKitPerWeek, [0, 1, 2, 3, 4], rng)); // 바쁜 평일에
   const days = new Array(7).fill(null);
 
   for (let day = 0; day < 7; day++) {
     days[day] = { breakfast: null, fruit: fruits[day], dinner: { main: null, soup: null }, skip: {} };
     days[day].breakfast = pickBreakfast(day, days, prefs, s, rng);
-    const main = pickMain(day, days, westernDays.has(day) ? 'western' : 'korean', prefs, s, rng);
+    const main = pickMain(day, days, westernDays.has(day) ? 'western' : 'korean', kitDays.has(day), prefs, s, rng);
     days[day].dinner.main = main?.id ?? null;
     days[day].dinner.soup = pickSoup(day, days, main, prefs, s, rng)?.id ?? null;
   }
@@ -203,8 +208,11 @@ function updateDay(plan, day, patch) {
   return { ...plan, days };
 }
 
-/** 한 끼(아침/메인/국)만 다시 추천 */
-export function reroll(plan, day, slot, settings = DEFAULT_SETTINGS, prefsIn = {}, rng = Math.random) {
+/**
+ * 한 끼(아침/메인/국)만 다시 추천
+ * options.kit: 메인을 밀키트(true) / 직접 요리(false)로 바꾸기. 생략하면 지금 상태 유지
+ */
+export function reroll(plan, day, slot, settings = DEFAULT_SETTINGS, prefsIn = {}, rng = Math.random, options = {}) {
   const s = { ...DEFAULT_SETTINGS, ...settings };
   const prefs = normalizePrefs(prefsIn);
   const current = plan.days[day];
@@ -219,8 +227,13 @@ export function reroll(plan, day, slot, settings = DEFAULT_SETTINGS, prefsIn = {
 
   const days = plan.days.map((d, i) => (i === day ? { ...d, dinner: { main: null, soup: null } } : d));
   if (slot === 'main') {
-    const cuisine = getRecipe(current.dinner.main)?.cuisine ?? 'korean';
-    const main = pickMain(day, days, cuisine, tmpPrefs(current.dinner.main), s, rng) ?? getRecipe(current.dinner.main);
+    const cur = getRecipe(current.dinner.main);
+    const cuisine = cur?.cuisine ?? 'korean';
+    const kit = options.kit ?? !!cur?.kit;
+    const main =
+      pickMain(day, days, cuisine, kit, tmpPrefs(current.dinner.main), s, rng) ??
+      pickMain(day, days, cuisine === 'western' ? 'korean' : 'western', kit, tmpPrefs(current.dinner.main), s, rng) ??
+      cur;
     days[day] = { ...days[day], dinner: { main: main.id, soup: null } };
     const keepSoup = main.type === 'main' && !main.oneDish && current.dinner.soup;
     const soup = keepSoup ? getRecipe(current.dinner.soup) : pickSoup(day, days, main, prefs, s, rng);
