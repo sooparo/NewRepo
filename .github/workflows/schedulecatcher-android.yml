@@ -2,6 +2,8 @@ name: ScheduleCatcher Android
 
 on:
   push:
+    branches-ignore:
+      - apk
     paths:
       - "ScheduleCatcher/**"
       - ".github/workflows/schedulecatcher-android.yml"
@@ -13,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: ScheduleCatcher
@@ -44,3 +48,23 @@ jobs:
         with:
           name: core-test-report
           path: ScheduleCatcher/core/build/reports/tests/test
+
+      # 최신 APK 를 'apk' 브랜치에 올린다 (항상 최신 1개만 유지, 강제 덮어쓰기)
+      - name: Publish APK to apk branch
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          out="$RUNNER_TEMP/apk-branch"
+          mkdir -p "$out"
+          cp app/build/outputs/apk/debug/app-debug.apk "$out/ScheduleCatcher.apk"
+          printf '# ScheduleCatcher APK\n\n- source commit: %s\n- source branch: %s\n- built: %s\n' \
+            "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$out/README.md"
+          cd "$out"
+          git init -q -b apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ScheduleCatcher.apk README.md
+          git commit -q -m "APK build from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk

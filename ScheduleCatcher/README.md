@@ -46,8 +46,10 @@
 
 ## 설치
 
-1. GitHub → **Actions** → `ScheduleCatcher Android` → 최신 실행 → **Artifacts**의 `ScheduleCatcher-debug-apk` 다운로드
-2. 압축을 풀어 `app-debug.apk`를 휴대폰으로 옮겨 설치 (출처를 알 수 없는 앱 설치 허용 필요)
+1. 최신 APK는 빌드할 때마다 저장소의 **`apk` 브랜치**에 `ScheduleCatcher.apk`로 올라갑니다
+   (GitHub에 `sooparo` 계정으로 로그인한 상태에서 `apk` 브랜치 → `ScheduleCatcher.apk` → Download).
+   Claude 대화에서 "APK 보내줘"라고 하면 파일로 바로 받을 수도 있습니다.
+2. 휴대폰에서 설치 (출처를 알 수 없는 앱 설치 허용 필요)
 3. 앱을 열고 화면 안내대로 권한 허용
    - **알림 접근 허용** — Android 13 이상에서 "제한된 설정" 때문에 켜지지 않으면:
      설정 → 애플리케이션 → 일정캐치 → 오른쪽 위 ⋮ → **제한된 설정 허용** 후 다시 시도
