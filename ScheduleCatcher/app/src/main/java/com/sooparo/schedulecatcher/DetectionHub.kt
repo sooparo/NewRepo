@@ -4,9 +4,9 @@ import android.content.Context
 import com.sooparo.schedulecatcher.core.MessageAnalyzer
 
 /**
- * 알림 감지와 화면 읽기가 함께 쓰는 감지 창구.
+ * 메시지 감지 창구.
  * - 분석 전에 개인정보를 가린다 (PrivacyFilter)
- * - 같은 메시지가 알림과 화면 양쪽에서 들어와도 한 번만 알린다
+ * - 같은 메시지 알림이 여러 번 갱신되어도 한 번만 알린다
  * - 대화방별로 연속 메시지를 합친다
  */
 object DetectionHub {

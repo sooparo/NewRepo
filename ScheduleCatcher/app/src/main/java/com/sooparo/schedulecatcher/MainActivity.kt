@@ -98,7 +98,6 @@ class MainActivity : AppCompatActivity() {
 
         // --- 대화방을 보고 있을 때 ---
         binding.btnPaste.setOnClickListener { startActivity(Intent(this, PasteActivity::class.java)) }
-        binding.btnScreenReader.setOnClickListener { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
 
         // --- 개인정보 가리기 ---
         binding.switchMaskReg.isChecked = prefs.maskRegistrationNumbers
@@ -152,11 +151,6 @@ class MainActivity : AppCompatActivity() {
             "✅ 연결됨: ${prefs.calendarName}"
         } else {
             "⚠️ 연결 안 됨 (캘린더 저장 시 기기 캘린더 앱이 열립니다)"
-        }
-        binding.statusScreenReader.text = if (ScreenReaderService.isEnabled(this)) {
-            "✅ 화면 읽기 켜짐 (끄려면 접근성 설정에서)"
-        } else {
-            "⚪ 화면 읽기 꺼짐 (선택 기능)"
         }
         val bm = prefs.briefingMinuteOfDay
         binding.btnBriefingTime.text = "브리핑 시각: ${Formats.time(java.time.LocalTime.of(bm / 60, bm % 60))}"

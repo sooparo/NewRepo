@@ -112,10 +112,7 @@ class Prefs(context: Context) {
 
     var monitoredPackages: Set<String>
         get() = sp.getStringSet(KEY_PACKAGES, null)?.toSet() ?: DEFAULT_PACKAGES.keys
-        set(value) {
-            sp.edit { putStringSet(KEY_PACKAGES, value) }
-            ScreenReaderService.applyPackages(app)
-        }
+        set(value) = sp.edit { putStringSet(KEY_PACKAGES, value) }
 
     /** 최근 메시지 알림을 보낸 앱(감지 대상 선택 목록에 표시) */
     val seenPackages: Set<String>

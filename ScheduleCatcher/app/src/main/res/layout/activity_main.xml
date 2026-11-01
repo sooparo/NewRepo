@@ -236,7 +236,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="카톡 대화방을 열어두면 알림이 뜨지 않아 자동 감지가 안 됩니다. 아래 두 방법을 쓸 수 있어요."
+            android:text="카톡 대화방을 열어두면 알림이 뜨지 않아 자동 감지가 안 됩니다. 이때는 복사 후 붙여넣기를 쓰세요."
             android:textAppearance="?attr/textAppearanceBodySmall" />
 
         <TextView
@@ -253,23 +253,6 @@
             android:layout_height="wrap_content"
             android:text="📋 지금 복사한 메시지로 일정 만들기" />
 
-        <TextView
-            android:id="@+id/statusScreenReader"
-            style="@style/StatusText" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="👀 화면 읽기(선택): 대화방을 보고 있을 때도 새 메시지를 자동 감지합니다. '감지할 앱'의 화면만 받고, 저장하지 않으며, 아래 개인정보 가리기가 먼저 적용됩니다. 병원 보안 규정에서 접근성 앱 사용이 허용되는지 확인 후 켜세요."
-            android:textAppearance="?attr/textAppearanceBodySmall" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnScreenReader"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="접근성 설정 열기 → 설치된 앱 → 일정캐치 화면 읽기" />
-
         <!-- 7. 개인정보 가리기 -->
         <TextView
             style="@style/SectionTitle"
@@ -278,7 +261,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="알림 · 화면 읽기 · 붙여넣기 · 공유 모두, 분석하기 전에 아래 정보를 지웁니다."
+            android:text="알림 · 붙여넣기 · 공유 모두, 분석하기 전에 아래 정보를 지웁니다."
             android:textAppearance="?attr/textAppearanceBodySmall" />
 
         <com.google.android.material.materialswitch.MaterialSwitch

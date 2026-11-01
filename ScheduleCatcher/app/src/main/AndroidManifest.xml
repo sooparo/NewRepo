@@ -135,20 +135,6 @@
             </intent-filter>
         </service>
 
-        <!-- (선택) 화면 읽기: 사용자가 접근성 설정에서 직접 켜야 동작 -->
-        <service
-            android:name=".ScreenReaderService"
-            android:exported="true"
-            android:label="@string/a11y_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/screen_reader_config" />
-        </service>
-
         <service
             android:name=".MessageListenerService"
             android:exported="true"
