@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
+    `java-library`
     id("org.jetbrains.kotlin.jvm")
 }
 
@@ -16,7 +17,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // CalDavClient 의 공개 API(생성자 기본값)에 OkHttpClient 가 노출되므로 api 로 선언
+    api("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.21")
