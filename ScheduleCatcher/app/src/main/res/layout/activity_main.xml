@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="문자 · 카카오톡 · 네이버 웍스 메시지에서 일정을 찾으면 알림으로 물어봅니다:\n[📅 캘린더] [⏰ 알람] [둘 다]"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <!-- 1. 권한 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="1. 권한" />
+
+        <TextView android:id="@+id/statusListener" style="@style/StatusText" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnListenerAccess"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알림 접근 허용하기" />
+        <TextView
+            android:id="@+id/restrictedHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💡 '제한된 설정'이라며 켜지지 않으면: 앱 정보 → 오른쪽 위 ⋮ → '제한된 설정 허용' 후 다시 시도하세요. (Play 스토어 외 설치 앱의 안드로이드 보안 정책)"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAppInfo"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="앱 정보 열기" />
+
+        <TextView android:id="@+id/statusPostNotifications" style="@style/StatusText" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPostNotifications"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알림 표시 허용" />
+
+        <TextView android:id="@+id/statusExactAlarm" style="@style/StatusText" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExactAlarm"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알람 권한 허용" />
+
+        <TextView android:id="@+id/statusFullScreen" style="@style/StatusText" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFullScreen"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="전체 화면 알림 허용" />
+
+        <!-- 2. 네이버 캘린더 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="2. 네이버 캘린더 연결 (CalDAV)" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="네이버 → 내정보 → 보안설정 → 2단계 인증 → '애플리케이션 비밀번호 관리'에서 발급한 비밀번호를 입력하세요. (네이버 로그인 비밀번호 아님)"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="네이버 아이디">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputNaverId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textNoSuggestions" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="애플리케이션 비밀번호">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputNaverPw"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="연결하고 캘린더 선택" />
+
+        <TextView android:id="@+id/calendarStatus" style="@style/StatusText" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchCalendarReminder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="캘린더 일정에도 알림 넣기" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchIncludeText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="메시지 원문을 일정 메모에 포함 (환자정보 등 주의)" />
+
+        <!-- 3. 알람 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="3. 알람" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="기본 알람 시점" />
+
+            <Spinner
+                android:id="@+id/spinnerLead"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchClockApp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="기본 시계 앱에 알람 등록 (24시간 이내 일정만, 그 외엔 앱 알람)" />
+
+        <!-- 4. 감지 대상 앱 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="4. 감지할 앱" />
+
+        <TextView
+            android:id="@+id/packagesText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPackages"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="앱 선택" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="목록에 없는 앱은, 그 앱에서 메시지 알림을 한 번 받은 뒤 여기서 선택할 수 있어요."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <!-- 5. 인식 테스트 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="5. 인식 테스트" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="예) 내일 오후 3시 회의실에서 QA 회의 있습니다">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputTest"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTest"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="분석" />
+
+        <TextView android:id="@+id/testResult" style="@style/StatusText" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestOpen"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:text="확인 화면 열기" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestNotify"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:enabled="false"
+                android:text="감지 알림 띄워보기" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
