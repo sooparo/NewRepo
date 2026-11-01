@@ -11,6 +11,8 @@ export function emptyDB() {
       favorites: [], // 즐겨찾기 레시피 id
       disliked: [], // 추천 제외 레시피 id
       links: {}, // 재료명 → 저장한 쿠팡 상품 링크
+      emartLinks: {}, // 재료명 → 저장한 이마트몰 상품 링크
+      stores: ['coupang', 'emart'], // 장보기에 보여줄 쇼핑몰
       staples: [], // 매주 고정 장보기 항목
     },
     plans: {}, // weekStart → plan

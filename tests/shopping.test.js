@@ -146,3 +146,16 @@ test('직접 넣기 입력 해석', async () => {
   assert.deepEqual(parseItemInput('  물티슈 '), { name: '물티슈', qty: 0, unit: '' });
   assert.deepEqual(parseItemInput('비타500'), { name: '비타500', qty: 0, unit: '' });
 });
+
+test('이마트몰 링크', async () => {
+  const { storeUrl, extractStoreLink, STORES } = await import('../js/shopping.js');
+  assert.equal(storeUrl('emart', '돼지고기 앞다리(불고기용)'), 'https://emart.ssg.com/search.ssg?target=all&query=' + encodeURIComponent('돼지고기 앞다리 불고기용'));
+  assert.equal(storeUrl('emart', '양파', { 양파: 'https://emart.ssg.com/item/itemView.ssg?itemId=1' }), 'https://emart.ssg.com/item/itemView.ssg?itemId=1');
+  assert.equal(storeUrl('coupang', '양파'), 'https://www.coupang.com/np/search?q=' + encodeURIComponent('양파'));
+  assert.equal(extractStoreLink('emart', '[이마트몰] 양파 https://emart.ssg.com/item/itemView.ssg?itemId=1000 '), 'https://emart.ssg.com/item/itemView.ssg?itemId=1000');
+  assert.equal(extractStoreLink('emart', 'https://m.ssg.com/item/1'), 'https://m.ssg.com/item/1');
+  assert.equal(extractStoreLink('emart', 'https://link.coupang.com/a/x'), null, '쿠팡 링크는 이마트 칸에 저장 안 됨');
+  assert.equal(extractStoreLink('coupang', 'https://emart.ssg.com/item/1'), null);
+  assert.equal(extractStoreLink('emart', 'https://notssg.com.evil.io/'), null);
+  assert.deepEqual(Object.keys(STORES), ['coupang', 'emart']);
+});
