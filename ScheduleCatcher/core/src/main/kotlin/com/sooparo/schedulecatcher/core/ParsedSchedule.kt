@@ -16,4 +16,6 @@ data class ParsedSchedule(
     val location: String?,
     val sourceText: String,
     val matchedKeyword: String?,
+    /** "매주 화요일" 같은 반복 표현이 있으면 반복 규칙 */
+    val recurrence: Recurrence? = null,
 )

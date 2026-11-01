@@ -40,32 +40,35 @@ class ScheduleParser(
         val current = now()
         val today = current.toLocalDate()
 
-        val dateHit = findDates(src, today).firstOrNull()
-        val times = findTimes(src).filter { t -> dateHit == null || !t.span.overlaps(dateHit.span) }
+        val recurrence = findRecurrence(src)
+        val dateHit = findDates(src, today).firstOrNull { d -> recurrence == null || !d.span.overlaps(recurrence.first) }
+        val times = findTimes(src).filter { t ->
+            (dateHit == null || !t.span.overlaps(dateHit.span)) && (recurrence == null || !t.span.overlaps(recurrence.first))
+        }
         val keyword = findKeyword(src)
+        val hasDate = dateHit != null || recurrence != null
 
         val startTime = times.firstOrNull()
         when {
-            startTime != null && (dateHit != null || keyword != null) -> Unit
-            startTime == null && dateHit != null && keyword != null -> Unit
+            startTime != null && (hasDate || keyword != null) -> Unit
+            startTime == null && hasDate && keyword != null -> Unit
             else -> return null
         }
 
         val allDay = startTime == null
         val startHour = startTime?.let { to24(it.hour, it.meridiem) }
         if (startTime != null && startHour == null) return null
+        val localTime = startHour?.let { LocalTime.of(it, startTime!!.minute) }
 
-        val startDateTime: LocalDateTime = if (allDay) {
-            dateHit!!.date.atStartOfDay()
+        // 날짜 없이 시간만 있으면 오늘, 이미 지났으면 내일
+        val timePassedToday = localTime != null && !localTime.isAfter(current.toLocalTime())
+        val baseDate = dateHit?.date ?: if (timePassedToday) today.plusDays(1) else today
+        val startDate = if (recurrence != null) {
+            recurrence.second.copy(interval = 1).firstOnOrAfter(baseDate, baseDate) ?: return null
         } else {
-            val lt = LocalTime.of(startHour!!, startTime!!.minute)
-            when {
-                dateHit != null -> dateHit.date.atTime(lt)
-                // 날짜 없이 시간만 있으면 오늘, 이미 지났으면 내일
-                lt.isAfter(current.toLocalTime()) -> today.atTime(lt)
-                else -> today.plusDays(1).atTime(lt)
-            }
+            baseDate
         }
+        val startDateTime: LocalDateTime = if (localTime == null) startDate.atStartOfDay() else startDate.atTime(localTime)
 
         // 이미 지나간 일정은 저장 대상이 아니다.
         if (!allDay && startDateTime.isBefore(current.minusMinutes(30))) return null
@@ -79,10 +82,11 @@ class ScheduleParser(
 
         val removeSpans = buildList {
             dateHit?.let { add(it.span) }
+            recurrence?.let { add(it.first) }
             addAll(times.map { it.span })
         }
         val location = findLocation(src, removeSpans)
-        val anchor = dateHit?.span?.start ?: startTime!!.span.start
+        val anchor = dateHit?.span?.start ?: recurrence?.first?.start ?: startTime!!.span.start
         val title = buildTitle(src, anchor, removeSpans + listOfNotNull(location?.second), keyword)
 
         return ParsedSchedule(
@@ -93,7 +97,47 @@ class ScheduleParser(
             location = location?.first,
             sourceText = text,
             matchedKeyword = keyword,
+            recurrence = recurrence?.second,
         )
+    }
+
+    /**
+     * 메시지에서 날짜(와 시간)만 뽑는다. 할 일의 마감일 추출용.
+     * @return (날짜, 시간 또는 null). 날짜가 없으면 null.
+     */
+    fun extractDue(text: String): Pair<LocalDate, LocalTime?>? {
+        val src = normalize(text)
+        val today = now().toLocalDate()
+        val dateHit = findDates(src, today).firstOrNull() ?: return null
+        val time = findTimes(src).firstOrNull { !it.span.overlaps(dateHit.span) }
+            ?.let { t -> to24(t.hour, t.meridiem)?.let { LocalTime.of(it, t.minute) } }
+        return dateHit.date to time
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // 반복
+    // ---------------------------------------------------------------------------------------------
+
+    private fun findRecurrence(src: String): Pair<Span, Recurrence>? {
+        val hits = mutableListOf<Pair<Span, Recurrence>>()
+        REC_WEEKLY.findAll(src).forEach { m ->
+            val days = m.groupValues[2].mapNotNull { Recurrence.koreanDay(it) }.toSet()
+            val interval = if (m.groupValues[1].startsWith("격")) 2 else 1
+            hits += m.span() to Recurrence(Recurrence.Freq.WEEKLY, interval, days)
+        }
+        REC_DAY_MADA.findAll(src).forEach { m ->
+            val day = Recurrence.koreanDay(m.groupValues[1][0]) ?: return@forEach
+            hits += m.span() to Recurrence(Recurrence.Freq.WEEKLY, 1, setOf(day))
+        }
+        REC_WEEKDAYS.findAll(src).forEach { m ->
+            hits += m.span() to Recurrence(Recurrence.Freq.DAILY, 1, Recurrence.WEEKDAYS)
+        }
+        REC_DAILY.findAll(src).forEach { m -> hits += m.span() to Recurrence(Recurrence.Freq.DAILY) }
+        REC_MONTHLY.findAll(src).forEach { m ->
+            val day = m.groupValues[2].toInt()
+            if (day in 1..31) hits += m.span() to Recurrence(Recurrence.Freq.MONTHLY, 1, byMonthDay = day)
+        }
+        return pickNonOverlapping(hits) { it.first }.firstOrNull()
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -319,7 +363,7 @@ class ScheduleParser(
         var strippedEnding = false
         repeat(3) {
             val m = ENDINGS.find(s)
-            if (m != null && m.range.first > 0) {
+            if (m != null) {
                 s = s.substring(0, m.range.first)
                 strippedEnding = true
             }
@@ -373,6 +417,12 @@ class ScheduleParser(
         private val REL_DAY = Regex("내일\\s?모레|글피|모레|내일|명일|오늘|금일")
         private val WEEKDAY = Regex("(?:(이번\\s?주|금주|다다음\\s?주|다음\\s?주|담주|차주)\\s*)?([월화수목금토일])요일")
 
+        private val REC_WEEKLY = Regex("(매\\s?주|격주)\\s*([월화수목금토일](?:\\s*[,·/및]\\s*[월화수목금토일])*)\\s*요일(?:\\s?마다)?")
+        private val REC_DAY_MADA = Regex("([월화수목금토일])요일\\s?마다")
+        private val REC_WEEKDAYS = Regex("평일\\s?마다|매\\s?평일|평일\\s?매일|주중\\s?매일")
+        private val REC_DAILY = Regex("매일|날마다")
+        private val REC_MONTHLY = Regex("(매\\s?월|매\\s?달)\\s*(\\d{1,2})\\s*일")
+
         private val TIME_KO = Regex(
             "(?<![0-9])(?:$MERIDIEM\\s*)?(\\d{1,2})\\s*시(?!간)(?:\\s*(\\d{1,2})\\s*분|\\s*(반))?",
             RegexOption.IGNORE_CASE,
@@ -399,7 +449,8 @@ class ScheduleParser(
         private val ENDINGS = Regex(
             "\\s*(?:있습니다|있어요|있어|있음|있네요|입니다|이에요|예요|예정입니다|예정이에요|예정|합니다|해요|할게요|할께요|" +
                 "하겠습니다|어때요|어때|어떠세요|어떠신가요|가능하세요|가능할까요|가능하신가요|진행합니다|진행됩니다|" +
-                "잡혔습니다|잡혔어요|잡았어요|입니당|이요)\\s*[.!?~ㅎㅋ^]*\\s*$",
+                "잡혔습니다|잡혔어요|잡았어요|입니당|이요|시간\\s?되세요|시간\\s?괜찮으세요|시간\\s?있으세요|되세요|괜찮으세요|" +
+                "괜찮나요|괜찮을까요|있으세요|될까요|할까요|하려고요|하려구요|하려고\\s?합니다|할\\s?예정입니다)\\s*[.!?~ㅎㅋ^]*\\s*$",
         )
         private val SUBJECT_PARTICLE = Regex("([가-힣A-Za-z]{2,})[이가]\\s*$")
     }

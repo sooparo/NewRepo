@@ -88,6 +88,21 @@ class CalDavClient(
         return eventUrl.toString()
     }
 
+    /** 일정을 삭제한다 (저장 취소). 이미 없으면(404) 성공으로 본다. */
+    fun deleteEvent(eventUrl: String) {
+        val request = Request.Builder()
+            .url(eventUrl)
+            .header("Authorization", authHeader)
+            .delete()
+            .build()
+        http.newCall(request).execute().use { resp ->
+            if (resp.code == 401 || resp.code == 403) throw authError(resp.code)
+            if (!resp.isSuccessful && resp.code != 404) {
+                throw CalDavException("일정 삭제 실패 (HTTP ${resp.code})", resp.code)
+            }
+        }
+    }
+
     // ---------------------------------------------------------------------------------------------
 
     private data class DavResponse(val url: HttpUrl, val props: Map<String, Element>)

@@ -23,6 +23,8 @@ object ICalendarBuilder {
         val description: String? = null,
         /** 캘린더 자체 알림(분 단위, 일정 시작 전). null 이면 알림 없음 */
         val reminderMinutesBefore: Int? = null,
+        /** 반복 규칙 (예: "FREQ=WEEKLY;BYDAY=TU") */
+        val rrule: String? = null,
     )
 
     fun build(event: Event, zone: ZoneId = ZoneId.of("Asia/Seoul"), stamp: Instant = Instant.now()): String {
@@ -47,6 +49,7 @@ object ICalendarBuilder {
             lines += "DTEND:${UTC_FORMAT.format(end.atZone(zone).toInstant())}"
         }
 
+        event.rrule?.takeIf { it.isNotBlank() }?.let { lines += "RRULE:${it.removePrefix("RRULE:")}" }
         lines += "SUMMARY:${escape(event.title)}"
         event.location?.takeIf { it.isNotBlank() }?.let { lines += "LOCATION:${escape(it)}" }
         event.description?.takeIf { it.isNotBlank() }?.let { lines += "DESCRIPTION:${escape(it)}" }
