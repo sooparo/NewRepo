@@ -66,6 +66,26 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_INCLUDE_TEXT, false)
         set(value) = sp.edit { putBoolean(KEY_INCLUDE_TEXT, value) }
 
+    /** 확인 화면에서 마지막으로 고른 저장 대상 (기본: 캘린더) */
+    var lastTargets: SaveTargets
+        get() = SaveTargets.decode(sp.getString(KEY_LAST_TARGETS, null)) ?: SaveTargets.CALENDAR
+        set(value) = sp.edit { putString(KEY_LAST_TARGETS, value.encode()) }
+
+    /** 감지 알림의 세 번째 버튼: false = [할 일], true = [둘 다(캘린더+알람)] */
+    var thirdButtonBoth: Boolean
+        get() = sp.getBoolean(KEY_THIRD_BOTH, false)
+        set(value) = sp.edit { putBoolean(KEY_THIRD_BOTH, value) }
+
+    /** 아침 브리핑 */
+    var briefingEnabled: Boolean
+        get() = sp.getBoolean(KEY_BRIEFING, true)
+        set(value) = sp.edit { putBoolean(KEY_BRIEFING, value) }
+
+    /** 아침 브리핑 시각 (분 단위, 기본 07:00) */
+    var briefingMinuteOfDay: Int
+        get() = sp.getInt(KEY_BRIEFING_TIME, 7 * 60)
+        set(value) = sp.edit { putInt(KEY_BRIEFING_TIME, value) }
+
     var monitoredPackages: Set<String>
         get() = sp.getStringSet(KEY_PACKAGES, null)?.toSet() ?: DEFAULT_PACKAGES.keys
         set(value) = sp.edit { putStringSet(KEY_PACKAGES, value) }
@@ -99,6 +119,10 @@ class Prefs(context: Context) {
         private const val KEY_INCLUDE_TEXT = "include_original_text"
         private const val KEY_PACKAGES = "monitored_packages"
         private const val KEY_SEEN = "seen_packages"
+        private const val KEY_LAST_TARGETS = "last_targets"
+        private const val KEY_THIRD_BOTH = "third_button_both"
+        private const val KEY_BRIEFING = "briefing_enabled"
+        private const val KEY_BRIEFING_TIME = "briefing_time"
     }
 }
 

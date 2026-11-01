@@ -15,6 +15,13 @@
             android:text="문자 · 카카오톡 · 네이버 웍스 메시지에서 일정을 찾으면 알림으로 물어봅니다:\n[📅 캘린더] [⏰ 알람] [둘 다]"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenTasks"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:text="✅ 할 일 · 🕘 저장 기록 보기" />
+
         <!-- 1. 권한 -->
         <TextView
             style="@style/SectionTitle"
@@ -176,10 +183,55 @@
             android:text="목록에 없는 앱은, 그 앱에서 메시지 알림을 한 번 받은 뒤 여기서 선택할 수 있어요."
             android:textAppearance="?attr/textAppearanceBodySmall" />
 
-        <!-- 5. 인식 테스트 -->
+        <!-- 5. 위젯 · 아침 브리핑 · 알림 버튼 -->
         <TextView
             style="@style/SectionTitle"
-            android:text="5. 인식 테스트" />
+            android:text="5. 위젯 · 아침 브리핑" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="홈 화면 빈 곳을 길게 누르기 → 위젯 → '일정캐치'를 추가하면 일정과 할 일이 보입니다. 위젯에서 할 일을 누르면 완료 체크됩니다."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchBriefing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="아침 브리핑 알림 (오늘 일정 · 할 일 요약)" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBriefingTime"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBriefingNow"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="지금 미리보기" />
+        </LinearLayout>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchThirdBoth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="감지 알림 세 번째 버튼을 [할 일] 대신 [둘 다(캘린더+알람)]로" />
+
+        <!-- 6. 인식 테스트 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="6. 인식 테스트" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"

@@ -21,6 +21,7 @@ object Notifications {
     const val CH_DETECT = "detect"
     const val CH_RESULT = "result"
     const val CH_ALARM = "alarm_v1"
+    const val CH_BRIEFING = "briefing"
 
     fun createChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -46,7 +47,10 @@ object Notifications {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setBypassDnd(true)
         }
-        nm.createNotificationChannels(listOf(detect, result, alarm))
+        val briefing = NotificationChannel(CH_BRIEFING, "아침 브리핑", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = "매일 아침 오늘 일정과 할 일 요약"
+        }
+        nm.createNotificationChannels(listOf(detect, result, alarm, briefing))
     }
 
     fun canPost(context: Context): Boolean =
@@ -62,23 +66,27 @@ object Notifications {
 
     fun cancel(context: Context, id: Int) = NotificationManagerCompat.from(context).cancel(id)
 
-    /** 메시지에서 감지한 일정 → [캘린더] [알람] [둘 다] 선택 알림 */
+    /**
+     * 메시지에서 감지한 일정 → [캘린더] [알람] [할 일] 선택 알림.
+     * 같은 [ScheduleData.id] 로 다시 부르면(연속 메시지로 내용 보완) 소리 없이 내용만 갱신된다.
+     */
     fun showDetected(context: Context, data: ScheduleData) {
         val nid = data.notificationId
+        val prefs = Prefs(context)
         val open = PendingIntent.getActivity(
             context,
-            nid * 4,
+            nid * 8,
             data.putInto(Intent(context, ConfirmActivity::class.java)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        fun action(target: SaveTarget, label: String, slot: Int): NotificationCompat.Action {
+        fun action(targets: SaveTargets, label: String, slot: Int): NotificationCompat.Action {
             val intent = data.putInto(Intent(context, QuickSaveActivity::class.java))
-                .putExtra(QuickSaveActivity.EXTRA_TARGET, target.name)
+                .putExtra(QuickSaveActivity.EXTRA_TARGETS, targets.encode())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             val pi = PendingIntent.getActivity(
                 context,
-                nid * 4 + slot,
+                nid * 8 + slot,
                 intent,
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
@@ -86,35 +94,48 @@ object Notifications {
         }
 
         val whenText = Formats.whenText(data)
+        val kind = if (data.isTask) "할 일 감지" else "일정 감지"
         val details = buildString {
             append(whenText)
             data.location?.let { append("\n📍 ").append(it) }
             data.sourceLabel?.let { append("\n").append(it) }
-            append("\n\n탭하면 내용을 수정할 수 있어요. 어디에 저장할까요?")
+            append("\n\n탭하면 내용을 고치고 여러 곳에 함께 저장할 수 있어요.")
         }
 
-        val n = NotificationCompat.Builder(context, CH_DETECT)
+        val builder = NotificationCompat.Builder(context, CH_DETECT)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("일정 감지: ${data.title}")
+            .setContentTitle("$kind: ${data.title}")
             .setContentText("$whenText · 어디에 저장할까요?")
             .setStyle(NotificationCompat.BigTextStyle().bigText(details))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(open)
             .setAutoCancel(true)
-            .addAction(action(SaveTarget.CALENDAR, "📅 캘린더", 1))
-            .addAction(action(SaveTarget.ALARM, "⏰ 알람", 2))
-            .addAction(action(SaveTarget.BOTH, "둘 다", 3))
-            .build()
+            .setOnlyAlertOnce(true)
 
-        post(context, nid, n)
+        when {
+            data.isTask && !data.dateKnown -> builder
+                .addAction(action(SaveTargets.TODO, "✅ 할 일 추가", 1))
+            data.isTask -> builder
+                .addAction(action(SaveTargets.TODO, "✅ 할 일", 1))
+                .addAction(action(SaveTargets.CALENDAR, "📅 캘린더", 2))
+                .addAction(action(SaveTargets.ALARM, "⏰ 알람", 3))
+            else -> builder
+                .addAction(action(SaveTargets.CALENDAR, "📅 캘린더", 1))
+                .addAction(action(SaveTargets.ALARM, "⏰ 알람", 2))
+                .addAction(
+                    if (prefs.thirdButtonBoth) action(SaveTargets.BOTH, "둘 다", 3) else action(SaveTargets.TODO, "✅ 할 일", 3),
+                )
+        }
+
+        post(context, nid, builder.build())
     }
 
     /** 저장 실패 등 → 탭하면 확인 화면으로 */
     fun showResult(context: Context, data: ScheduleData, message: String) {
         val open = PendingIntent.getActivity(
             context,
-            data.notificationId * 4,
+            data.notificationId * 8,
             data.putInto(Intent(context, ConfirmActivity::class.java)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )

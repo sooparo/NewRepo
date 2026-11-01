@@ -15,15 +15,15 @@ class QuickSaveActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val data = ScheduleData.fromIntent(intent)
-        val target = intent.getStringExtra(EXTRA_TARGET)?.let { runCatching { SaveTarget.valueOf(it) }.getOrNull() }
-        if (data == null || target == null) {
+        val targets = SaveTargets.decode(intent.getStringExtra(EXTRA_TARGETS))
+        if (data == null || targets == null) {
             finish()
             return
         }
         Notifications.cancel(this, data.notificationId)
 
         lifecycleScope.launch {
-            val result = ScheduleSaver(this@QuickSaveActivity).save(data, target)
+            val result = ScheduleSaver(this@QuickSaveActivity).save(data, targets)
             Toast.makeText(applicationContext, result.summary, Toast.LENGTH_LONG).show()
             if (!result.allOk) Notifications.showResult(applicationContext, data, result.summary)
             finish()
@@ -32,6 +32,6 @@ class QuickSaveActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_TARGET = "save.target"
+        const val EXTRA_TARGETS = "save.targets"
     }
 }

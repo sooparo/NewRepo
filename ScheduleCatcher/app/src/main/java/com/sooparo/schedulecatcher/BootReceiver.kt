@@ -11,7 +11,11 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
-            -> AlarmScheduler.rescheduleAll(context)
+            -> {
+                AlarmScheduler.rescheduleAll(context)
+                BriefingScheduler.schedule(context)
+                WidgetUpdater.refresh(context)
+            }
         }
     }
 }

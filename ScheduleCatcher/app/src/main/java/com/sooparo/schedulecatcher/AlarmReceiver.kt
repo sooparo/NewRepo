@@ -6,6 +6,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import com.sooparo.schedulecatcher.core.Recurrence
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -23,12 +27,26 @@ class AlarmReceiver : BroadcastReceiver() {
         val entry = AlarmStore.get(context, id) ?: AlarmStore.Entry(id, System.currentTimeMillis(), "일정 알람", "")
         AlarmStore.remove(context, id)
         showAlarm(context, entry)
+        scheduleNextOccurrence(context, entry)
+    }
+
+    /** 반복 알람: 다음 일정 시각 기준으로 다시 예약 */
+    private fun scheduleNextOccurrence(context: Context, entry: AlarmStore.Entry) {
+        val rec = Recurrence.fromRRule(entry.rrule) ?: return
+        val anchorAt = entry.anchorAt ?: return
+        val zone = ZoneId.systemDefault()
+        val anchor = LocalDateTime.ofInstant(Instant.ofEpochMilli(anchorAt), zone)
+        val thisEvent = LocalDateTime.ofInstant(Instant.ofEpochMilli(entry.triggerAt + entry.leadMs), zone)
+        val next = rec.nextAfter(anchor, thisEvent) ?: return
+        val nextTrigger = next.atZone(zone).toInstant().toEpochMilli() - entry.leadMs
+        AlarmScheduler.schedule(context, entry.copy(triggerAt = nextTrigger))
     }
 
     private fun snooze(context: Context, id: Int, intent: Intent) {
         Notifications.cancel(context, alarmNotificationId(id))
         val entry = AlarmStore.Entry(
-            id = id,
+            // 반복 알람의 다음 회차와 겹치지 않도록 다시 알림은 별도 id
+            id = snoozeId(id),
             triggerAt = System.currentTimeMillis() + SNOOZE_MS,
             title = intent.getStringExtra(EXTRA_TITLE) ?: "일정 알람",
             info = intent.getStringExtra(EXTRA_INFO).orEmpty(),
@@ -46,6 +64,8 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val SNOOZE_MS = 5 * 60 * 1000L
 
         fun alarmNotificationId(id: Int) = 0x70000000 or (id and 0x0FFFFFFF)
+
+        private fun snoozeId(id: Int) = 0x10000000 or (id and 0x0FFFFFFF)
 
         fun actionIntent(context: Context, action: String, entry: AlarmStore.Entry): Intent =
             Intent(context, AlarmReceiver::class.java)

@@ -2,6 +2,7 @@ package com.sooparo.schedulecatcher
 
 import android.Manifest
 import android.app.NotificationManager
+import android.app.TimePickerDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -76,6 +77,25 @@ class MainActivity : AppCompatActivity() {
         binding.switchIncludeText.isChecked = prefs.includeOriginalText
         binding.switchIncludeText.setOnCheckedChangeListener { _, checked -> prefs.includeOriginalText = checked }
 
+        // --- 위젯 · 브리핑 ---
+        binding.btnOpenTasks.setOnClickListener { startActivity(Intent(this, TasksActivity::class.java)) }
+        binding.switchBriefing.isChecked = prefs.briefingEnabled
+        binding.switchBriefing.setOnCheckedChangeListener { _, checked ->
+            prefs.briefingEnabled = checked
+            BriefingScheduler.schedule(this)
+        }
+        binding.btnBriefingTime.setOnClickListener {
+            val m = prefs.briefingMinuteOfDay
+            TimePickerDialog(this, { _, h, min ->
+                prefs.briefingMinuteOfDay = h * 60 + min
+                BriefingScheduler.schedule(this)
+                refreshStatus()
+            }, m / 60, m % 60, false).show()
+        }
+        binding.btnBriefingNow.setOnClickListener { BriefingScheduler.show(this, force = true) }
+        binding.switchThirdBoth.isChecked = prefs.thirdButtonBoth
+        binding.switchThirdBoth.setOnCheckedChangeListener { _, checked -> prefs.thirdButtonBoth = checked }
+
         // --- 감지 대상 앱 ---
         binding.btnPackages.setOnClickListener { choosePackages() }
 
@@ -119,6 +139,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             "⚠️ 연결 안 됨 (캘린더 저장 시 기기 캘린더 앱이 열립니다)"
         }
+        val bm = prefs.briefingMinuteOfDay
+        binding.btnBriefingTime.text = "브리핑 시각: ${Formats.time(java.time.LocalTime.of(bm / 60, bm % 60))}"
         binding.packagesText.text = prefs.monitoredPackages.joinToString("\n") { "• ${AppLabels.label(this, it)}  ($it)" }
             .ifEmpty { "선택된 앱 없음" }
     }
@@ -209,17 +231,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun runTest() {
         val text = binding.inputTest.text?.toString().orEmpty()
-        val parsed = ScheduleParser().parse(text)
-        if (parsed == null) {
+        val parser = ScheduleParser()
+        val detection = com.sooparo.schedulecatcher.core.MessageAnalyzer.Detection(
+            parser.parse(text),
+            com.sooparo.schedulecatcher.core.TodoDetector(parser).detect(text),
+            false,
+        )
+        val data = ScheduleData.from(detection, "테스트", null)
+        if (data == null) {
             lastTest = null
             binding.testResult.text = "일정으로 인식되지 않았어요."
             binding.btnTestOpen.isEnabled = false
             binding.btnTestNotify.isEnabled = false
             return
         }
-        val data = ScheduleData.from(parsed, "테스트", null)
         lastTest = data
         binding.testResult.text = buildString {
+            append(if (data.isTask) "종류: 할 일\n" else "종류: 일정\n")
             append("제목: ").append(data.title).append('\n')
             append("일시: ").append(Formats.whenText(data))
             data.location?.let { append("\n장소: ").append(it) }

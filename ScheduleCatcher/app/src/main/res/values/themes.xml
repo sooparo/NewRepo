@@ -3,4 +3,14 @@
     <style name="Theme.ScheduleCatcher" parent="Theme.Material3.DayNight">
         <item name="colorPrimary">@color/brand</item>
     </style>
+
+    <!-- 대화상자만 보이는 투명 화면 (위젯의 + 버튼) -->
+    <style name="Theme.ScheduleCatcher.Translucent" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>

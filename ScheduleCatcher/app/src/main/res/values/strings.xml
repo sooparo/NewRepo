@@ -3,4 +3,5 @@
     <string name="app_name">일정캐치</string>
     <string name="confirm_title">일정 저장</string>
     <string name="share_label">일정캐치로 일정 저장</string>
+    <string name="widget_description">오늘 일정과 할 일 체크리스트</string>
 </resources>

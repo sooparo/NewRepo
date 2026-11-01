@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="0dp"
+                android:layout_marginTop="0dp"
+                android:layout_weight="1"
+                android:text="✅ 할 일" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddTodo"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+ 추가" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/todoEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="할 일이 없어요."
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <LinearLayout
+            android:id="@+id/todoList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="🕘 저장 기록" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="잘못 저장했으면 [취소]를 누르세요. 네이버 캘린더 일정·알람·할 일이 함께 지워집니다."
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <TextView
+            android:id="@+id/historyEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="저장 기록이 없어요."
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <LinearLayout
+            android:id="@+id/historyList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSettings"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="⚙️ 설정" />
+    </LinearLayout>
+</ScrollView>
